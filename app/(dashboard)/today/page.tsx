@@ -3,6 +3,9 @@
  * Shows tasks due today and daily planning features
  */
 
+// Force dynamic rendering to ensure fresh data on each request
+export const dynamic = 'force-dynamic'
+
 import { requireAuth } from '@/lib/auth/session'
 import { taskService, type TaskWithSubtasks } from '@/services'
 import { TodayPageClient } from './today-client'

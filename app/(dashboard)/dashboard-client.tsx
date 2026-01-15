@@ -8,9 +8,16 @@
 import { type FC } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TaskList, QuickAddForm } from '@/components/features/tasks'
+import { createTask } from '@/app/actions/task-actions'
 
 interface Task {
   id: string
@@ -47,7 +54,9 @@ function transformTask(task: Task) {
     id: task.id,
     title: task.title,
     description: task.description ?? undefined,
-    status: (task.status as 'pending' | 'in_progress' | 'completed' | 'deleted') || 'pending',
+    status:
+      (task.status as 'pending' | 'in_progress' | 'completed' | 'deleted') ||
+      'pending',
     priority: (task.priority as 'high' | 'medium' | 'low' | 'none') || 'none',
     dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
   }
@@ -61,8 +70,10 @@ export const DashboardClient: FC<DashboardClientProps> = ({
   const router = useRouter()
 
   const handleAddTask = async (title: string) => {
-    console.log('Adding task:', title, 'for user:', userId)
-    // TODO: Connect to server action
+    const result = await createTask(title)
+    if (!result.success) {
+      console.error('Failed to create task:', result.error)
+    }
     router.refresh()
   }
 
@@ -75,7 +86,8 @@ export const DashboardClient: FC<DashboardClientProps> = ({
     router.refresh()
   }
 
-  const totalTasks = summary.overdueCount + summary.todayCount + summary.upcomingCount
+  const totalTasks =
+    summary.overdueCount + summary.todayCount + summary.upcomingCount
 
   return (
     <div className="space-y-6">
@@ -89,17 +101,24 @@ export const DashboardClient: FC<DashboardClientProps> = ({
 
       {/* Quick Add Form */}
       <section>
-        <QuickAddForm onAdd={handleAddTask} placeholder="Quick add a new task..." />
+        <QuickAddForm
+          onAdd={handleAddTask}
+          placeholder="Quick add a new task..."
+        />
       </section>
 
       {/* Task Summary Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* Overdue Card */}
         <Link href="/today" className="block">
-          <Card className={`transition-colors hover:border-red-300 ${summary.overdueCount > 0 ? 'border-red-200 bg-red-50' : ''}`}>
+          <Card
+            className={`transition-colors hover:border-red-300 ${summary.overdueCount > 0 ? 'border-red-200 bg-red-50' : ''}`}
+          >
             <CardHeader className="pb-2">
               <CardDescription>Overdue</CardDescription>
-              <CardTitle className={`text-3xl ${summary.overdueCount > 0 ? 'text-red-600' : ''}`}>
+              <CardTitle
+                className={`text-3xl ${summary.overdueCount > 0 ? 'text-red-600' : ''}`}
+              >
                 {summary.overdueCount}
               </CardTitle>
             </CardHeader>
@@ -118,7 +137,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({
           <Card className="transition-colors hover:border-blue-300">
             <CardHeader className="pb-2">
               <CardDescription>Due Today</CardDescription>
-              <CardTitle className="text-3xl text-blue-600">{summary.todayCount}</CardTitle>
+              <CardTitle className="text-3xl text-blue-600">
+                {summary.todayCount}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500">
@@ -135,7 +156,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({
           <Card className="transition-colors hover:border-indigo-300">
             <CardHeader className="pb-2">
               <CardDescription>Upcoming (7 days)</CardDescription>
-              <CardTitle className="text-3xl text-indigo-600">{summary.upcomingCount}</CardTitle>
+              <CardTitle className="text-3xl text-indigo-600">
+                {summary.upcomingCount}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500">
@@ -163,7 +186,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({
 
       {/* Recent Tasks */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Recent Tasks</h2>
           <Link href="/today">
             <Button variant="ghost" size="sm">
@@ -183,7 +206,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({
             <h3 className="mb-2 text-lg font-semibold text-gray-800">
               No tasks yet
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="mb-4 text-gray-600">
               Get started by adding your first task using the form above.
             </p>
           </div>

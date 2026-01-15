@@ -9,6 +9,7 @@ import { type FC } from 'react'
 import { useRouter } from 'next/navigation'
 import { TaskList, QuickAddForm } from '@/components/features/tasks'
 import { DailyBriefing } from '@/components/features/planning'
+import { createTaskForToday } from '@/app/actions/task-actions'
 
 interface Task {
   id: string
@@ -43,19 +44,26 @@ function transformTask(task: Task) {
     id: task.id,
     title: task.title,
     description: task.description ?? undefined,
-    status: (task.status as 'pending' | 'in_progress' | 'completed' | 'deleted') || 'pending',
+    status:
+      (task.status as 'pending' | 'in_progress' | 'completed' | 'deleted') ||
+      'pending',
     priority: (task.priority as 'high' | 'medium' | 'low' | 'none') || 'none',
     dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
   }
 }
 
-export const TodayPageClient: FC<TodayPageClientProps> = ({ groupedTasks, userId }) => {
+export const TodayPageClient: FC<TodayPageClientProps> = ({
+  groupedTasks,
+  userId,
+}) => {
   const router = useRouter()
 
   const handleAddTask = async (title: string) => {
-    // This will be connected to a server action
-    console.log('Adding task:', title, 'for user:', userId)
-    // For now, just refresh to show updated data
+    const result = await createTaskForToday(title)
+    if (!result.success) {
+      console.error('Failed to create task:', result.error)
+    }
+    router.refresh()
   }
 
   const handleSelectTask = (taskId: string) => {
@@ -87,7 +95,10 @@ export const TodayPageClient: FC<TodayPageClientProps> = ({ groupedTasks, userId
 
       {/* Quick Add Form */}
       <section>
-        <QuickAddForm onAdd={handleAddTask} placeholder="Add a task for today..." />
+        <QuickAddForm
+          onAdd={handleAddTask}
+          placeholder="Add a task for today..."
+        />
       </section>
 
       {/* Daily Briefing Section */}
@@ -142,7 +153,8 @@ export const TodayPageClient: FC<TodayPageClientProps> = ({ groupedTasks, userId
             Your day is clear!
           </h3>
           <p className="text-gray-600">
-            No tasks due today. Use the form above to add tasks, or check your upcoming tasks.
+            No tasks due today. Use the form above to add tasks, or check your
+            upcoming tasks.
           </p>
         </div>
       )}
