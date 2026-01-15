@@ -23,14 +23,11 @@ export type CreateTaskResult =
  */
 export async function createTask(
   title: string,
-  dueDate?: Date
+  dueDate?: Date | string | null
 ): Promise<CreateTaskResult> {
-  console.log(
-    '[createTask] Starting with title:',
-    title,
-    'dueDate:',
-    dueDate?.toISOString()
-  )
+  console.log('[createTask] Starting with title:', title)
+  console.log('[createTask] dueDate type:', typeof dueDate)
+  console.log('[createTask] dueDate value:', dueDate)
 
   try {
     const user = await getCurrentUser()
@@ -40,12 +37,25 @@ export async function createTask(
       return { success: false, error: 'Not authenticated' }
     }
 
+    // Handle Date serialization - server actions may serialize Date to string
+    let dueDateIso: string | null = null
+    if (dueDate) {
+      if (dueDate instanceof Date) {
+        dueDateIso = dueDate.toISOString()
+      } else if (typeof dueDate === 'string') {
+        dueDateIso = dueDate
+      }
+    }
+
     const validatedData = createTaskSchema.parse({
       title,
-      dueDate: dueDate?.toISOString(),
+      dueDate: dueDateIso,
       dueDateHasTime: false,
     })
-    console.log('[createTask] Validated data:', validatedData)
+    console.log(
+      '[createTask] Validated data:',
+      JSON.stringify(validatedData, null, 2)
+    )
 
     const task = await taskService.createTask(user.id, validatedData)
     console.log('[createTask] Task created:', task.id, task.title)
