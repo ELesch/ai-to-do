@@ -92,7 +92,17 @@ export async function updateTask(
     projectId?: string | null
   }
 ): Promise<UpdateTaskResult> {
-  console.log('[updateTask] Starting for task:', taskId, 'with values:', values)
+  console.log('[updateTask] Starting for task:', taskId)
+  console.log(
+    '[updateTask] Raw values received:',
+    JSON.stringify(values, null, 2)
+  )
+  console.log('[updateTask] dueDate type:', typeof values.dueDate)
+  console.log('[updateTask] dueDate value:', values.dueDate)
+  console.log(
+    '[updateTask] dueDate instanceof Date:',
+    values.dueDate instanceof Date
+  )
 
   try {
     const user = await getCurrentUser()
@@ -132,11 +142,26 @@ export async function updateTask(
       updateInput.projectId = values.projectId
     }
 
+    console.log(
+      '[updateTask] Update input before validation:',
+      JSON.stringify(updateInput, null, 2)
+    )
+
     const validatedData = updateTaskSchema.parse(updateInput)
-    console.log('[updateTask] Validated data:', validatedData)
+    console.log(
+      '[updateTask] Validated data:',
+      JSON.stringify(validatedData, null, 2)
+    )
 
     const task = await taskService.updateTask(taskId, user.id, validatedData)
     console.log('[updateTask] Task updated:', task.id, task.title)
+
+    // Verify the update by fetching the task again
+    const verifyTask = await taskService.getTask(taskId, user.id)
+    console.log(
+      '[updateTask] Verification - task title after update:',
+      verifyTask?.title
+    )
 
     revalidatePath('/today')
     revalidatePath('/')

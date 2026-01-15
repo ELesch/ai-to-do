@@ -148,11 +148,18 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
   const handleUpdate = async (values: TaskFormValues) => {
     setIsLoading(true)
     try {
+      // Convert Date to ISO string on client side to ensure proper serialization
+      // Next.js server actions may not serialize Date objects correctly
+      const dueDateValue =
+        values.dueDate instanceof Date
+          ? values.dueDate.toISOString()
+          : values.dueDate
+
       console.log(
         'Updating task:',
         task.id,
         'with values:',
-        values,
+        { ...values, dueDate: dueDateValue },
         'for user:',
         userId
       )
@@ -160,10 +167,11 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
         title: values.title,
         description: values.description,
         priority: values.priority,
-        dueDate: values.dueDate,
+        dueDate: dueDateValue,
         dueDateHasTime: values.dueDateHasTime,
         projectId: values.projectId,
       })
+      console.log('Update result:', result)
       if (!result.success) {
         console.error('Failed to update task:', result.error)
       }

@@ -74,6 +74,12 @@ interface SettingsClientProps {
 // Constants
 // ============================================================================
 
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+]
+
 const DEFAULT_VIEW_OPTIONS = [
   { value: 'today', label: 'Today' },
   { value: 'upcoming', label: 'Upcoming' },

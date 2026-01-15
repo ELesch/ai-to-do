@@ -5,7 +5,19 @@
 
 import { db } from '@/lib/db'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, gte, lte, desc, asc, or, isNull, ilike, sql, inArray } from 'drizzle-orm'
+import {
+  eq,
+  and,
+  gte,
+  lte,
+  desc,
+  asc,
+  or,
+  isNull,
+  ilike,
+  sql,
+  inArray,
+} from 'drizzle-orm'
 import { z } from 'zod'
 
 // ============================================================================
@@ -15,7 +27,10 @@ import { z } from 'zod'
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(500),
   description: z.string().max(10000).nullable().optional(),
-  priority: z.enum(['high', 'medium', 'low', 'none']).optional().default('none'),
+  priority: z
+    .enum(['high', 'medium', 'low', 'none'])
+    .optional()
+    .default('none'),
   dueDate: z.string().datetime().nullable().optional(),
   dueDateHasTime: z.boolean().optional().default(false),
   scheduledDate: z.string().nullable().optional(),
@@ -43,7 +58,10 @@ export const taskFiltersSchema = z.object({
   search: z.string().optional(),
   parentTaskId: z.string().uuid().nullable().optional(),
   includeDeleted: z.boolean().optional().default(false),
-  sortBy: z.enum(['createdAt', 'dueDate', 'priority', 'sortOrder', 'updatedAt']).optional().default('sortOrder'),
+  sortBy: z
+    .enum(['createdAt', 'dueDate', 'priority', 'sortOrder', 'updatedAt'])
+    .optional()
+    .default('sortOrder'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
   limit: z.coerce.number().int().positive().max(100).optional().default(50),
   offset: z.coerce.number().int().nonnegative().optional().default(0),
@@ -96,7 +114,10 @@ class TaskService {
   /**
    * Create a new task
    */
-  async createTask(userId: string, input: CreateTaskInput): Promise<TaskWithSubtasks> {
+  async createTask(
+    userId: string,
+    input: CreateTaskInput
+  ): Promise<TaskWithSubtasks> {
     const validatedInput = createTaskSchema.parse(input)
 
     // If parent task specified, verify it exists and belongs to user
@@ -116,7 +137,9 @@ class TaskService {
         title: validatedInput.title,
         description: validatedInput.description ?? null,
         priority: validatedInput.priority,
-        dueDate: validatedInput.dueDate ? new Date(validatedInput.dueDate) : null,
+        dueDate: validatedInput.dueDate
+          ? new Date(validatedInput.dueDate)
+          : null,
         dueDateHasTime: validatedInput.dueDateHasTime,
         scheduledDate: validatedInput.scheduledDate ?? null,
         startDate: validatedInput.startDate ?? null,
@@ -136,7 +159,10 @@ class TaskService {
   /**
    * Get a single task by ID with user validation
    */
-  async getTask(taskId: string, userId: string): Promise<TaskWithSubtasks | null> {
+  async getTask(
+    taskId: string,
+    userId: string
+  ): Promise<TaskWithSubtasks | null> {
     const task = await db.query.tasks.findFirst({
       where: and(
         eq(tasks.id, taskId),
@@ -151,7 +177,10 @@ class TaskService {
   /**
    * Get tasks for a user with filtering
    */
-  async getUserTasks(userId: string, filters: TaskFilters = {}): Promise<{
+  async getUserTasks(
+    userId: string,
+    filters: TaskFilters = {}
+  ): Promise<{
     tasks: TaskWithSubtasks[]
     total: number
     hasMore: boolean
@@ -268,7 +297,10 @@ class TaskService {
     }
 
     // If parent task is being changed, verify it exists
-    if (validatedInput.parentTaskId !== undefined && validatedInput.parentTaskId !== null) {
+    if (
+      validatedInput.parentTaskId !== undefined &&
+      validatedInput.parentTaskId !== null
+    ) {
       const parentTask = await this.getTask(validatedInput.parentTaskId, userId)
       if (!parentTask) {
         throw new Error('Parent task not found')
@@ -284,37 +316,80 @@ class TaskService {
       updatedAt: new Date(),
     }
 
-    if (validatedInput.title !== undefined) updateData.title = validatedInput.title
-    if (validatedInput.description !== undefined) updateData.description = validatedInput.description
-    if (validatedInput.priority !== undefined) updateData.priority = validatedInput.priority
+    if (validatedInput.title !== undefined)
+      updateData.title = validatedInput.title
+    if (validatedInput.description !== undefined)
+      updateData.description = validatedInput.description
+    if (validatedInput.priority !== undefined)
+      updateData.priority = validatedInput.priority
     if (validatedInput.status !== undefined) {
       updateData.status = validatedInput.status
       // Set completedAt when status changes to completed
-      if (validatedInput.status === 'completed' && existingTask.status !== 'completed') {
+      if (
+        validatedInput.status === 'completed' &&
+        existingTask.status !== 'completed'
+      ) {
         updateData.completedAt = new Date()
       } else if (validatedInput.status !== 'completed') {
         updateData.completedAt = null
       }
     }
     if (validatedInput.dueDate !== undefined) {
-      updateData.dueDate = validatedInput.dueDate ? new Date(validatedInput.dueDate) : null
+      updateData.dueDate = validatedInput.dueDate
+        ? new Date(validatedInput.dueDate)
+        : null
     }
-    if (validatedInput.dueDateHasTime !== undefined) updateData.dueDateHasTime = validatedInput.dueDateHasTime
-    if (validatedInput.scheduledDate !== undefined) updateData.scheduledDate = validatedInput.scheduledDate
-    if (validatedInput.startDate !== undefined) updateData.startDate = validatedInput.startDate
-    if (validatedInput.estimatedMinutes !== undefined) updateData.estimatedMinutes = validatedInput.estimatedMinutes
-    if (validatedInput.actualMinutes !== undefined) updateData.actualMinutes = validatedInput.actualMinutes
-    if (validatedInput.projectId !== undefined) updateData.projectId = validatedInput.projectId
-    if (validatedInput.parentTaskId !== undefined) updateData.parentTaskId = validatedInput.parentTaskId
-    if (validatedInput.sortOrder !== undefined) updateData.sortOrder = validatedInput.sortOrder
-    if (validatedInput.isRecurring !== undefined) updateData.isRecurring = validatedInput.isRecurring
-    if (validatedInput.metadata !== undefined) updateData.metadata = validatedInput.metadata
+    if (validatedInput.dueDateHasTime !== undefined)
+      updateData.dueDateHasTime = validatedInput.dueDateHasTime
+    if (validatedInput.scheduledDate !== undefined)
+      updateData.scheduledDate = validatedInput.scheduledDate
+    if (validatedInput.startDate !== undefined)
+      updateData.startDate = validatedInput.startDate
+    if (validatedInput.estimatedMinutes !== undefined)
+      updateData.estimatedMinutes = validatedInput.estimatedMinutes
+    if (validatedInput.actualMinutes !== undefined)
+      updateData.actualMinutes = validatedInput.actualMinutes
+    if (validatedInput.projectId !== undefined)
+      updateData.projectId = validatedInput.projectId
+    if (validatedInput.parentTaskId !== undefined)
+      updateData.parentTaskId = validatedInput.parentTaskId
+    if (validatedInput.sortOrder !== undefined)
+      updateData.sortOrder = validatedInput.sortOrder
+    if (validatedInput.isRecurring !== undefined)
+      updateData.isRecurring = validatedInput.isRecurring
+    if (validatedInput.metadata !== undefined)
+      updateData.metadata = validatedInput.metadata
+
+    console.log(
+      '[TaskService.updateTask] Executing update with data:',
+      JSON.stringify(
+        updateData,
+        (key, value) => {
+          if (value instanceof Date) return value.toISOString()
+          return value
+        },
+        2
+      )
+    )
 
     const [updatedTask] = await db
       .update(tasks)
       .set(updateData)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning()
+
+    console.log(
+      '[TaskService.updateTask] Update result:',
+      updatedTask ? 'Task updated successfully' : 'No task returned'
+    )
+    if (updatedTask) {
+      console.log(
+        '[TaskService.updateTask] Updated task ID:',
+        updatedTask.id,
+        'Title:',
+        updatedTask.title
+      )
+    }
 
     return updatedTask as TaskWithSubtasks
   }
@@ -401,7 +476,10 @@ class TaskService {
   /**
    * Get subtasks for a task
    */
-  async getSubtasks(taskId: string, userId: string): Promise<TaskWithSubtasks[]> {
+  async getSubtasks(
+    taskId: string,
+    userId: string
+  ): Promise<TaskWithSubtasks[]> {
     // Verify parent task exists and belongs to user
     const parentTask = await this.getTask(taskId, userId)
     if (!parentTask) {
@@ -508,7 +586,10 @@ class TaskService {
   /**
    * Get task with all subtasks recursively
    */
-  async getTaskWithSubtasks(taskId: string, userId: string): Promise<TaskWithSubtasks | null> {
+  async getTaskWithSubtasks(
+    taskId: string,
+    userId: string
+  ): Promise<TaskWithSubtasks | null> {
     const task = await this.getTask(taskId, userId)
     if (!task) return null
 
