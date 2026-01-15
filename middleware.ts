@@ -12,7 +12,13 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Routes that require authentication
-const protectedRoutes = ['/dashboard', '/today', '/upcoming', '/projects', '/settings']
+const protectedRoutes = [
+  '/dashboard',
+  '/today',
+  '/upcoming',
+  '/projects',
+  '/settings',
+]
 
 // Routes that should redirect authenticated users away (auth pages)
 const authRoutes = ['/login', '/register', '/forgot-password']
@@ -44,7 +50,7 @@ function getSecurityHeaders(isProduction: boolean): Record<string, string> {
 
     // Disable client-side caching for HTML pages (not static assets)
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
+    Pragma: 'no-cache',
 
     // Permissions Policy (formerly Feature-Policy)
     // Restrict access to sensitive browser features
@@ -88,13 +94,16 @@ function getSecurityHeaders(isProduction: boolean): Record<string, string> {
       'block-all-mixed-content',
       // Upgrade insecure requests in production
       isProduction ? 'upgrade-insecure-requests' : '',
-    ].filter(Boolean).join('; '),
+    ]
+      .filter(Boolean)
+      .join('; '),
   }
 
   // HTTP Strict Transport Security (HSTS)
   // Only in production - forces HTTPS for all future requests
   if (isProduction) {
-    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    headers['Strict-Transport-Security'] =
+      'max-age=31536000; includeSubDomains; preload'
   }
 
   return headers
@@ -124,10 +133,17 @@ function matchesRoute(pathname: string, routes: string[]): boolean {
 
 /**
  * Get the authentication token from cookies
- * This checks for common auth cookie names
+ * This checks for common auth cookie names across NextAuth versions
  */
 function getAuthToken(request: NextRequest): string | null {
-  // Check for NextAuth session token
+  // Check for NextAuth v5 / Auth.js session token (JWT strategy)
+  const authJsToken =
+    request.cookies.get('authjs.session-token')?.value ||
+    request.cookies.get('__Secure-authjs.session-token')?.value
+
+  if (authJsToken) return authJsToken
+
+  // Check for NextAuth v4 session token (fallback)
   const nextAuthToken =
     request.cookies.get('next-auth.session-token')?.value ||
     request.cookies.get('__Secure-next-auth.session-token')?.value
