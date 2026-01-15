@@ -19,7 +19,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const user = await requireAuth()
 
   // Fetch the task
-  const task = await taskService.getTask(user.id, taskId)
+  const task = await taskService.getTask(taskId, user.id)
 
   // Handle not found
   if (!task) {
