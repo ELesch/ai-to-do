@@ -87,7 +87,7 @@ export async function updateTask(
     title?: string
     description?: string
     priority?: 'none' | 'low' | 'medium' | 'high'
-    dueDate?: Date | null
+    dueDate?: Date | string | null
     dueDateHasTime?: boolean
     projectId?: string | null
   }
@@ -115,7 +115,15 @@ export async function updateTask(
       updateInput.priority = values.priority
     }
     if (values.dueDate !== undefined) {
-      updateInput.dueDate = values.dueDate?.toISOString() ?? null
+      // Handle both Date objects and ISO strings (server actions serialize Dates to strings)
+      if (values.dueDate === null) {
+        updateInput.dueDate = null
+      } else if (values.dueDate instanceof Date) {
+        updateInput.dueDate = values.dueDate.toISOString()
+      } else {
+        // Already a string (from server action serialization)
+        updateInput.dueDate = values.dueDate
+      }
     }
     if (values.dueDateHasTime !== undefined) {
       updateInput.dueDateHasTime = values.dueDateHasTime
