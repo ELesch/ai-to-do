@@ -1,0 +1,24 @@
+/**
+ * App Providers
+ * Client-side wrapper that provides all context providers
+ */
+
+'use client'
+
+import { type FC, type ReactNode } from 'react'
+import { KeyboardProvider } from './keyboard-provider'
+
+interface AppProvidersProps {
+  children: ReactNode
+}
+
+/**
+ * Combines all client-side providers into a single wrapper
+ */
+export const AppProviders: FC<AppProvidersProps> = ({ children }) => {
+  return (
+    <KeyboardProvider>
+      {children}
+    </KeyboardProvider>
+  )
+}
