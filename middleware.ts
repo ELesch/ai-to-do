@@ -202,8 +202,8 @@ export function middleware(request: NextRequest) {
   else if (matchesRoute(pathname, authRoutes)) {
     if (authenticated) {
       // Redirect to dashboard
-      const dashboardUrl = new URL('/dashboard', request.url)
-      response = NextResponse.redirect(dashboardUrl)
+      const todayUrl = new URL('/today', request.url)
+      response = NextResponse.redirect(todayUrl)
     } else {
       response = NextResponse.next()
     }

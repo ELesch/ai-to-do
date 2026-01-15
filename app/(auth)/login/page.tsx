@@ -86,7 +86,7 @@ export default function LoginPage() {
       }
 
       // Step 3: Redirect to dashboard
-      router.push('/dashboard')
+      router.push('/today')
       router.refresh()
     } catch {
       setError('An unexpected error occurred. Please try again.')
