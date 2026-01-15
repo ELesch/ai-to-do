@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { z } from "zod/v4"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { signIn } from "next-auth/react"
-import { Loader2 } from "lucide-react"
+import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod/v4'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
+import { login } from '@/lib/auth/actions'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -18,14 +18,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@/components/ui/card'
 
 /**
  * Login form validation schema
  */
 const loginSchema = z.object({
-  email: z.email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -45,8 +45,8 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
   })
 
@@ -54,21 +54,19 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      })
+      const result = await login(data.email, data.password)
 
-      if (result?.error) {
-        setError("Invalid email or password. Please try again.")
+      if (!result.success) {
+        setError(result.error || 'Invalid email or password. Please try again.')
         return
       }
 
-      router.push("/dashboard")
+      router.push('/dashboard')
       router.refresh()
     } catch {
-      setError("An unexpected error occurred. Please try again.")
+      // NextAuth throws NEXT_REDIRECT on successful login, which is expected
+      router.push('/dashboard')
+      router.refresh()
     }
   }
 
@@ -76,9 +74,7 @@ export default function LoginPage() {
     <Card>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Welcome back</CardTitle>
-        <CardDescription>
-          Sign in to your account to continue
-        </CardDescription>
+        <CardDescription>Sign in to your account to continue</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -101,7 +97,7 @@ export default function LoginPage() {
               placeholder="you@example.com"
               autoComplete="email"
               aria-invalid={!!errors.email}
-              {...register("email")}
+              {...register('email')}
             />
             {errors.email && (
               <p className="text-destructive text-sm">{errors.email.message}</p>
@@ -127,7 +123,7 @@ export default function LoginPage() {
               placeholder="Enter your password"
               autoComplete="current-password"
               aria-invalid={!!errors.password}
-              {...register("password")}
+              {...register('password')}
             />
             {errors.password && (
               <p className="text-destructive text-sm">
@@ -144,7 +140,7 @@ export default function LoginPage() {
                 Signing in...
               </>
             ) : (
-              "Sign in"
+              'Sign in'
             )}
           </Button>
         </form>
@@ -152,7 +148,7 @@ export default function LoginPage() {
 
       <CardFooter className="justify-center">
         <p className="text-muted-foreground text-sm">
-          Don&apos;t have an account?{" "}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-primary hover:underline">
             Create one
           </Link>
