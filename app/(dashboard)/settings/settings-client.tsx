@@ -74,12 +74,6 @@ interface SettingsClientProps {
 // Constants
 // ============================================================================
 
-const THEME_OPTIONS = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
-]
-
 const DEFAULT_VIEW_OPTIONS = [
   { value: 'today', label: 'Today' },
   { value: 'upcoming', label: 'Upcoming' },
@@ -143,7 +137,7 @@ export function SettingsClient({
 }: SettingsClientProps) {
   return (
     <SettingsProvider initialPreferences={initialPreferences}>
-      <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl space-y-8">
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground">
@@ -231,7 +225,7 @@ function ProfileSection({ user }: ProfileSectionProps) {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" value={user.email} disabled />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Email cannot be changed
             </p>
           </div>
@@ -272,7 +266,10 @@ function AppearanceSection() {
           description="The view shown when you open the app"
           value={preferences.defaultView || 'today'}
           onValueChange={(value) =>
-            updatePreference('defaultView', value as UserPreferences['defaultView'])
+            updatePreference(
+              'defaultView',
+              value as UserPreferences['defaultView']
+            )
           }
           options={DEFAULT_VIEW_OPTIONS}
         />
@@ -318,7 +315,10 @@ function DateTimeSection() {
           description="How dates are displayed"
           value={preferences.dateFormat || 'MM/DD/YYYY'}
           onValueChange={(value) =>
-            updatePreference('dateFormat', value as UserPreferences['dateFormat'])
+            updatePreference(
+              'dateFormat',
+              value as UserPreferences['dateFormat']
+            )
           }
           options={DATE_FORMAT_OPTIONS}
         />
@@ -327,7 +327,10 @@ function DateTimeSection() {
           description="12-hour or 24-hour clock"
           value={preferences.timeFormat || '12h'}
           onValueChange={(value) =>
-            updatePreference('timeFormat', value as UserPreferences['timeFormat'])
+            updatePreference(
+              'timeFormat',
+              value as UserPreferences['timeFormat']
+            )
           }
           options={TIME_FORMAT_OPTIONS}
         />
@@ -389,7 +392,10 @@ function NotificationsSection() {
           <h4 className="text-sm font-medium">Quiet Hours</h4>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Label htmlFor="quiet-start" className="text-sm text-muted-foreground">
+              <Label
+                htmlFor="quiet-start"
+                className="text-muted-foreground text-sm"
+              >
                 From
               </Label>
               <Input
@@ -403,7 +409,10 @@ function NotificationsSection() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label htmlFor="quiet-end" className="text-sm text-muted-foreground">
+              <Label
+                htmlFor="quiet-end"
+                className="text-muted-foreground text-sm"
+              >
                 To
               </Label>
               <Input
@@ -417,7 +426,7 @@ function NotificationsSection() {
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             No notifications will be sent during quiet hours
           </p>
         </div>
@@ -552,26 +561,26 @@ function AccountSection({ user, stats }: AccountSectionProps) {
       <CardContent className="space-y-6">
         {/* Account Stats */}
         <div className="rounded-lg border p-4">
-          <h4 className="text-sm font-medium mb-4">Account Overview</h4>
+          <h4 className="mb-4 text-sm font-medium">Account Overview</h4>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
               <p className="text-2xl font-bold">{stats.totalTasks}</p>
-              <p className="text-xs text-muted-foreground">Total Tasks</p>
+              <p className="text-muted-foreground text-xs">Total Tasks</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.completedTasks}</p>
-              <p className="text-xs text-muted-foreground">Completed</p>
+              <p className="text-muted-foreground text-xs">Completed</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.totalProjects}</p>
-              <p className="text-xs text-muted-foreground">Projects</p>
+              <p className="text-muted-foreground text-xs">Projects</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.aiInteractions}</p>
-              <p className="text-xs text-muted-foreground">AI Chats</p>
+              <p className="text-muted-foreground text-xs">AI Chats</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-muted-foreground mt-4 text-xs">
             Member since {new Date(user.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -580,11 +589,14 @@ function AccountSection({ user, stats }: AccountSectionProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium">Password</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Change your account password
             </p>
           </div>
-          <Button variant="outline" onClick={() => router.push('/forgot-password')}>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/forgot-password')}
+          >
             Change Password
           </Button>
         </div>
@@ -593,11 +605,14 @@ function AccountSection({ user, stats }: AccountSectionProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium">Sign Out</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Sign out of your account on this device
             </p>
           </div>
-          <Button variant="outline" onClick={() => signOut({ callbackUrl: '/' })}>
+          <Button
+            variant="outline"
+            onClick={() => signOut({ callbackUrl: '/' })}
+          >
             Sign Out
           </Button>
         </div>
@@ -606,8 +621,8 @@ function AccountSection({ user, stats }: AccountSectionProps) {
         <div className="border-t pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-destructive">Delete Account</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-destructive font-medium">Delete Account</p>
+              <p className="text-muted-foreground text-sm">
                 Permanently delete your account and all data
               </p>
             </div>
@@ -623,7 +638,7 @@ function AccountSection({ user, stats }: AccountSectionProps) {
                     your account and remove all your data including:
                   </DialogDescription>
                 </DialogHeader>
-                <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
+                <ul className="text-muted-foreground list-disc space-y-1 pl-6 text-sm">
                   <li>{stats.totalTasks} tasks</li>
                   <li>{stats.totalProjects} projects</li>
                   <li>{stats.aiInteractions} AI conversations</li>
@@ -631,7 +646,8 @@ function AccountSection({ user, stats }: AccountSectionProps) {
                 </ul>
                 <div className="space-y-2 py-4">
                   <Label htmlFor="confirm-email">
-                    Type <span className="font-mono font-bold">{user.email}</span> to
+                    Type{' '}
+                    <span className="font-mono font-bold">{user.email}</span> to
                     confirm:
                   </Label>
                   <Input
