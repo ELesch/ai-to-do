@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod/v4'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { signIn } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
-import { login } from '@/lib/auth/actions'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,19 +54,42 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const result = await login(data.email, data.password)
+      // Step 1: Validate credentials via our API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      })
+
+      const result = await response.json()
 
       if (!result.success) {
-        setError(result.error || 'Invalid email or password. Please try again.')
+        setError(
+          result.message || 'Invalid email or password. Please try again.'
+        )
         return
       }
 
+      // Step 2: Create session via NextAuth
+      const signInResult = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      })
+
+      if (signInResult?.error) {
+        setError('Failed to create session. Please try again.')
+        return
+      }
+
+      // Step 3: Redirect to dashboard
       router.push('/dashboard')
       router.refresh()
     } catch {
-      // NextAuth throws NEXT_REDIRECT on successful login, which is expected
-      router.push('/dashboard')
-      router.refresh()
+      setError('An unexpected error occurred. Please try again.')
     }
   }
 
