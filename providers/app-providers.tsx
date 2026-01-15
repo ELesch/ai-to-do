@@ -6,6 +6,7 @@
 'use client'
 
 import { type FC, type ReactNode } from 'react'
+import { SessionProvider } from 'next-auth/react'
 import { KeyboardProvider } from './keyboard-provider'
 
 interface AppProvidersProps {
@@ -17,8 +18,8 @@ interface AppProvidersProps {
  */
 export const AppProviders: FC<AppProvidersProps> = ({ children }) => {
   return (
-    <KeyboardProvider>
-      {children}
-    </KeyboardProvider>
+    <SessionProvider>
+      <KeyboardProvider>{children}</KeyboardProvider>
+    </SessionProvider>
   )
 }
