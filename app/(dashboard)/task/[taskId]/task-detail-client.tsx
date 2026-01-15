@@ -13,6 +13,11 @@ import { ResearchPanel } from '@/components/features/ai/ResearchPanel'
 import { DraftPanel } from '@/components/features/ai/DraftPanel'
 import { Button } from '@/components/ui/button'
 import type { TaskPriority } from '@/types/task'
+import {
+  updateTask,
+  completeTask,
+  deleteTask,
+} from '@/app/actions/task-actions'
 
 // Search icon for the research button
 const SearchIcon = () => (
@@ -143,8 +148,25 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
   const handleUpdate = async (values: TaskFormValues) => {
     setIsLoading(true)
     try {
-      console.log('Updating task:', task.id, 'with values:', values, 'for user:', userId)
-      // TODO: Connect to server action
+      console.log(
+        'Updating task:',
+        task.id,
+        'with values:',
+        values,
+        'for user:',
+        userId
+      )
+      const result = await updateTask(task.id, {
+        title: values.title,
+        description: values.description,
+        priority: values.priority,
+        dueDate: values.dueDate,
+        dueDateHasTime: values.dueDateHasTime,
+        projectId: values.projectId,
+      })
+      if (!result.success) {
+        console.error('Failed to update task:', result.error)
+      }
       router.refresh()
     } finally {
       setIsLoading(false)
@@ -154,8 +176,18 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
   const handleComplete = async (taskId: string, completed: boolean) => {
     setIsLoading(true)
     try {
-      console.log('Setting task', taskId, 'completed:', completed, 'for user:', userId)
-      // TODO: Connect to server action
+      console.log(
+        'Setting task',
+        taskId,
+        'completed:',
+        completed,
+        'for user:',
+        userId
+      )
+      const result = await completeTask(taskId, completed)
+      if (!result.success) {
+        console.error('Failed to complete task:', result.error)
+      }
       router.refresh()
     } finally {
       setIsLoading(false)
@@ -166,7 +198,10 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
     setIsLoading(true)
     try {
       console.log('Deleting task:', taskId, 'for user:', userId)
-      // TODO: Connect to server action
+      const result = await deleteTask(taskId)
+      if (!result.success) {
+        console.error('Failed to delete task:', result.error)
+      }
       router.push('/today')
     } finally {
       setIsLoading(false)
@@ -247,11 +282,15 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
           <h2 className="mb-4 font-semibold">AI Assistant</h2>
           <div className="space-y-4">
             <p className="text-sm text-gray-500">
-              AI assistance for this task. You can ask questions, get suggestions,
-              or break down this task into subtasks.
+              AI assistance for this task. You can ask questions, get
+              suggestions, or break down this task into subtasks.
             </p>
             <div className="space-y-2">
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
                 Break down into subtasks
               </Button>
               <Button
@@ -272,11 +311,15 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
                 <PenIcon />
                 Draft related content
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+              >
                 Suggest improvements
               </Button>
             </div>
-            <div className="pt-4 border-t">
+            <div className="border-t pt-4">
               <p className="text-xs text-gray-400 italic">
                 AI chat interface coming soon...
               </p>
