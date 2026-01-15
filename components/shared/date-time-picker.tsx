@@ -73,7 +73,8 @@ const QUICK_DATE_OPTIONS = [
     id: 'next_week',
     label: 'Next Week',
     getDate: () => addWeeks(startOfToday(), 1),
-    check: (date: Date) => !isThisWeek(date) && isBefore(date, addWeeks(startOfToday(), 2)),
+    check: (date: Date) =>
+      !isThisWeek(date) && isBefore(date, addWeeks(startOfToday(), 2)),
   },
 ] as const
 
@@ -88,7 +89,10 @@ const QUICK_TIME_OPTIONS = [
 // HELPER FUNCTIONS
 // ============================================================================
 
-function formatDateDisplay(date: Date | null | undefined, hasTime: boolean): string {
+function formatDateDisplay(
+  date: Date | null | undefined,
+  hasTime: boolean
+): string {
   if (!date) return ''
 
   if (hasTime) {
@@ -106,7 +110,9 @@ function formatDateDisplay(date: Date | null | undefined, hasTime: boolean): str
   return format(date, 'MMM d, yyyy')
 }
 
-function parseTimeInput(timeStr: string): { hour: number; minute: number } | null {
+function parseTimeInput(
+  timeStr: string
+): { hour: number; minute: number } | null {
   // Try parsing various time formats
   const formats = ['h:mm a', 'H:mm', 'h:mma', 'ha', 'H']
 
@@ -176,12 +182,15 @@ const CalendarGrid: FC<{
   return (
     <div className="p-2">
       {/* Month navigation */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <button
+          type="button"
           onClick={() =>
-            setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1))
+            setViewMonth(
+              new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1)
+            )
           }
-          className="p-1 hover:bg-gray-100 rounded"
+          className="rounded p-1 hover:bg-gray-100"
         >
           &lsaquo;
         </button>
@@ -189,19 +198,25 @@ const CalendarGrid: FC<{
           {format(viewMonth, 'MMMM yyyy')}
         </span>
         <button
+          type="button"
           onClick={() =>
-            setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1))
+            setViewMonth(
+              new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1)
+            )
           }
-          className="p-1 hover:bg-gray-100 rounded"
+          className="rounded p-1 hover:bg-gray-100"
         >
           &rsaquo;
         </button>
       </div>
 
       {/* Day labels */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="mb-1 grid grid-cols-7 gap-1">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-          <div key={day} className="text-xs text-center text-muted-foreground py-1">
+          <div
+            key={day}
+            className="text-muted-foreground py-1 text-center text-xs"
+          >
             {day}
           </div>
         ))}
@@ -214,10 +229,13 @@ const CalendarGrid: FC<{
         ))}
         {days.map((day) => (
           <button
+            type="button"
             key={day}
             onClick={() =>
               !isDateDisabled(day) &&
-              onSelectDate(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day))
+              onSelectDate(
+                new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day)
+              )
             }
             disabled={isDateDisabled(day)}
             className={cn(
@@ -225,7 +243,7 @@ const CalendarGrid: FC<{
               isDateSelected(day)
                 ? 'bg-blue-600 text-white'
                 : 'hover:bg-gray-100',
-              isDateDisabled(day) && 'opacity-50 cursor-not-allowed'
+              isDateDisabled(day) && 'cursor-not-allowed opacity-50'
             )}
           >
             {day}
@@ -270,9 +288,9 @@ const TimePicker: FC<{
   }
 
   return (
-    <div className="border-t pt-3 mt-3">
-      <div className="flex items-center gap-2 mb-2">
-        <Clock className="h-4 w-4 text-muted-foreground" />
+    <div className="mt-3 border-t pt-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Clock className="text-muted-foreground h-4 w-4" />
         <span className="text-sm font-medium">Time</span>
       </div>
 
@@ -290,9 +308,10 @@ const TimePicker: FC<{
       <div className="flex flex-wrap gap-1">
         {QUICK_TIME_OPTIONS.map((option) => (
           <button
+            type="button"
             key={option.id}
             onClick={() => handleQuickTime(option.hour, option.minute)}
-            className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200"
           >
             {option.label}
           </button>
@@ -325,7 +344,10 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -405,13 +427,15 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          'flex items-center gap-2 w-full rounded-lg border px-3 py-2 text-sm text-left transition-colors',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50',
+          'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+          disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50',
           isOpen && 'ring-2 ring-blue-500 ring-offset-1'
         )}
       >
-        <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className={cn('flex-1 truncate', !value && 'text-muted-foreground')}>
+        <Calendar className="text-muted-foreground h-4 w-4 shrink-0" />
+        <span
+          className={cn('flex-1 truncate', !value && 'text-muted-foreground')}
+        >
           {value ? formatDateDisplay(value, includeTime) : placeholder}
         </span>
         {value && (
@@ -430,16 +454,17 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-72 rounded-lg border bg-white shadow-lg z-50">
+        <div className="absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border bg-white shadow-lg">
           {/* Quick date options */}
-          <div className="p-2 border-b">
+          <div className="border-b p-2">
             <div className="flex flex-wrap gap-1">
               {QUICK_DATE_OPTIONS.map((option) => (
                 <button
+                  type="button"
                   key={option.id}
                   onClick={() => handleQuickDateSelect(option.getDate)}
                   className={cn(
-                    'px-3 py-1.5 text-sm rounded transition-colors',
+                    'rounded px-3 py-1.5 text-sm transition-colors',
                     value && option.check(value)
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-gray-100 hover:bg-gray-200'
@@ -462,7 +487,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
           {/* Time toggle & picker */}
           {showTime && (
             <div className="border-t p-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={includeTime}
@@ -479,7 +504,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
           )}
 
           {/* Actions */}
-          <div className="border-t p-2 flex justify-end gap-2">
+          <div className="flex justify-end gap-2 border-t p-2">
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
               Done
             </Button>
@@ -499,7 +524,13 @@ export const TimePicker2: FC<{
   placeholder?: string
   className?: string
   disabled?: boolean
-}> = ({ value, onChange, placeholder = 'Select time', className, disabled }) => {
+}> = ({
+  value,
+  onChange,
+  placeholder = 'Select time',
+  className,
+  disabled,
+}) => {
   const [inputValue, setInputValue] = useState(() =>
     value ? format(value, 'h:mm a') : ''
   )
@@ -524,7 +555,7 @@ export const TimePicker2: FC<{
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+      <Clock className="text-muted-foreground h-4 w-4 shrink-0" />
       <Input
         type="text"
         value={inputValue}

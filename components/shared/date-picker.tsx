@@ -43,6 +43,7 @@ export const DatePicker: FC<DatePickerProps> = ({
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
       >
@@ -68,17 +69,18 @@ export const DatePicker: FC<DatePickerProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border bg-white p-2 shadow-lg z-10">
+        <div className="absolute top-full left-0 z-10 mt-1 w-64 rounded-lg border bg-white p-2 shadow-lg">
           {/* Quick options */}
-          <div className="space-y-1 mb-2">
+          <div className="mb-2 space-y-1">
             {quickOptions.map((opt) => (
               <button
+                type="button"
                 key={opt.label}
                 onClick={() => {
                   onChange?.(opt.getValue())
                   setIsOpen(false)
                 }}
-                className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm"
+                className="w-full rounded px-3 py-2 text-left text-sm hover:bg-gray-100"
               >
                 {opt.label}
               </button>
@@ -87,18 +89,19 @@ export const DatePicker: FC<DatePickerProps> = ({
 
           <div className="border-t pt-2">
             {/* TODO: Implement full calendar */}
-            <p className="text-xs text-gray-500 text-center py-4">
+            <p className="py-4 text-center text-xs text-gray-500">
               Full calendar coming soon
             </p>
           </div>
 
           {value && (
             <button
+              type="button"
               onClick={() => {
                 onChange?.(undefined)
                 setIsOpen(false)
               }}
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+              className="w-full rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
             >
               Clear date
             </button>
