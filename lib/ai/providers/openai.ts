@@ -153,7 +153,7 @@ export class OpenAIProvider extends BaseAIProvider {
         const response = await client.chat.completions.create({
           model,
           messages: toOpenAIMessages(messages, systemPrompt),
-          max_tokens: maxTokens,
+          max_completion_tokens: maxTokens,
           temperature,
         })
 
@@ -251,7 +251,7 @@ export class OpenAIProvider extends BaseAIProvider {
       const stream = await client.chat.completions.create({
         model,
         messages: toOpenAIMessages(messages, systemPrompt),
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
         temperature,
         stream: true,
         stream_options: { include_usage: true },
