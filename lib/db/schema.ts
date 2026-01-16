@@ -72,260 +72,434 @@ export const reminderTypeEnum = pgEnum('reminder_type', [
 // ============================================================================
 
 // Users
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  name: varchar('name', { length: 255 }),
-  passwordHash: varchar('password_hash', { length: 255 }),
-  emailVerified: timestamp('email_verified', { withTimezone: true }),
-  image: text('image'),
-  preferences: jsonb('preferences').$type<UserPreferences>().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-}, (table) => ({
-  emailIdx: uniqueIndex('users_email_idx').on(table.email),
-}))
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    name: varchar('name', { length: 255 }),
+    passwordHash: varchar('password_hash', { length: 255 }),
+    emailVerified: timestamp('email_verified', { withTimezone: true }),
+    image: text('image'),
+    preferences: jsonb('preferences').$type<UserPreferences>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex('users_email_idx').on(table.email),
+  })
+)
 
 // Projects
-export const projects = pgTable('projects', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  parentId: uuid('parent_id'),  // Self-reference handled via relations
-  name: varchar('name', { length: 255 }).notNull(),
-  description: text('description'),
-  color: varchar('color', { length: 7 }).default('#6366f1'),
-  icon: varchar('icon', { length: 50 }),
-  sortOrder: integer('sort_order').default(0),
-  isArchived: boolean('is_archived').default(false),
-  isFavorite: boolean('is_favorite').default(false),
-  settings: jsonb('settings').$type<ProjectSettings>().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-  archivedAt: timestamp('archived_at', { withTimezone: true }),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-}, (table) => ({
-  userIdIdx: index('projects_user_id_idx').on(table.userId),
-  parentIdIdx: index('projects_parent_id_idx').on(table.parentId),
-}))
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id'), // Self-reference handled via relations
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    color: varchar('color', { length: 7 }).default('#6366f1'),
+    icon: varchar('icon', { length: 50 }),
+    sortOrder: integer('sort_order').default(0),
+    isArchived: boolean('is_archived').default(false),
+    isFavorite: boolean('is_favorite').default(false),
+    settings: jsonb('settings').$type<ProjectSettings>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userIdIdx: index('projects_user_id_idx').on(table.userId),
+    parentIdIdx: index('projects_parent_id_idx').on(table.parentId),
+  })
+)
 
 // Tasks
-export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
-  parentTaskId: uuid('parent_task_id'),  // Self-reference handled via relations
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, {
+      onDelete: 'set null',
+    }),
+    parentTaskId: uuid('parent_task_id'), // Self-reference handled via relations
 
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  status: taskStatusEnum('status').default('pending').notNull(),
-  priority: taskPriorityEnum('priority').default('none').notNull(),
+    title: varchar('title', { length: 500 }).notNull(),
+    description: text('description'),
+    status: taskStatusEnum('status').default('pending').notNull(),
+    priority: taskPriorityEnum('priority').default('none').notNull(),
 
-  dueDate: timestamp('due_date', { withTimezone: true }),
-  dueDateHasTime: boolean('due_date_has_time').default(false),
-  scheduledDate: date('scheduled_date'),
-  startDate: date('start_date'),
+    dueDate: timestamp('due_date', { withTimezone: true }),
+    dueDateHasTime: boolean('due_date_has_time').default(false),
+    scheduledDate: date('scheduled_date'),
+    startDate: date('start_date'),
 
-  estimatedMinutes: integer('estimated_minutes'),
-  actualMinutes: integer('actual_minutes'),
+    estimatedMinutes: integer('estimated_minutes'),
+    actualMinutes: integer('actual_minutes'),
 
-  sortOrder: integer('sort_order').default(0),
+    sortOrder: integer('sort_order').default(0),
 
-  isRecurring: boolean('is_recurring').default(false),
-  recurrenceRule: jsonb('recurrence_rule').$type<RecurrenceRule>(),
-  recurrenceParentId: uuid('recurrence_parent_id'),  // Self-reference handled via relations
+    isRecurring: boolean('is_recurring').default(false),
+    recurrenceRule: jsonb('recurrence_rule').$type<RecurrenceRule>(),
+    recurrenceParentId: uuid('recurrence_parent_id'), // Self-reference handled via relations
 
-  metadata: jsonb('metadata').$type<TaskMetadata>().default({}),
+    metadata: jsonb('metadata').$type<TaskMetadata>().default({}),
 
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-}, (table) => ({
-  userIdStatusIdx: index('tasks_user_id_status_idx').on(table.userId, table.status),
-  projectIdIdx: index('tasks_project_id_idx').on(table.projectId),
-  parentTaskIdIdx: index('tasks_parent_task_id_idx').on(table.parentTaskId),
-  dueDateIdx: index('tasks_due_date_idx').on(table.userId, table.dueDate),
-  scheduledDateIdx: index('tasks_scheduled_date_idx').on(table.userId, table.scheduledDate),
-}))
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userIdStatusIdx: index('tasks_user_id_status_idx').on(
+      table.userId,
+      table.status
+    ),
+    projectIdIdx: index('tasks_project_id_idx').on(table.projectId),
+    parentTaskIdIdx: index('tasks_parent_task_id_idx').on(table.parentTaskId),
+    dueDateIdx: index('tasks_due_date_idx').on(table.userId, table.dueDate),
+    scheduledDateIdx: index('tasks_scheduled_date_idx').on(
+      table.userId,
+      table.scheduledDate
+    ),
+  })
+)
 
 // Tags
-export const tags = pgTable('tags', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 100 }).notNull(),
-  color: varchar('color', { length: 7 }).default('#6b7280'),
-  sortOrder: integer('sort_order').default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index('tags_user_id_idx').on(table.userId),
-  uniqueNamePerUser: uniqueIndex('tags_user_name_idx').on(table.userId, table.name),
-}))
+export const tags = pgTable(
+  'tags',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 100 }).notNull(),
+    color: varchar('color', { length: 7 }).default('#6b7280'),
+    sortOrder: integer('sort_order').default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('tags_user_id_idx').on(table.userId),
+    uniqueNamePerUser: uniqueIndex('tags_user_name_idx').on(
+      table.userId,
+      table.name
+    ),
+  })
+)
 
 // Task Tags (Junction)
-export const taskTags = pgTable('task_tags', {
-  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
-  tagId: uuid('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.taskId, table.tagId] }),
-  taskIdIdx: index('task_tags_task_id_idx').on(table.taskId),
-  tagIdIdx: index('task_tags_tag_id_idx').on(table.tagId),
-}))
+export const taskTags = pgTable(
+  'task_tags',
+  {
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    tagId: uuid('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.taskId, table.tagId] }),
+    taskIdIdx: index('task_tags_task_id_idx').on(table.taskId),
+    tagIdIdx: index('task_tags_tag_id_idx').on(table.tagId),
+  })
+)
 
 // Reminders
-export const reminders = pgTable('reminders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  remindAt: timestamp('remind_at', { withTimezone: true }).notNull(),
-  type: reminderTypeEnum('type').notNull(),
-  isSent: boolean('is_sent').default(false),
-  sentAt: timestamp('sent_at', { withTimezone: true }),
-  channels: text('channels').array().default(['push']),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  remindAtIdx: index('reminders_remind_at_idx').on(table.remindAt),
-  taskIdIdx: index('reminders_task_id_idx').on(table.taskId),
-}))
+export const reminders = pgTable(
+  'reminders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    remindAt: timestamp('remind_at', { withTimezone: true }).notNull(),
+    type: reminderTypeEnum('type').notNull(),
+    isSent: boolean('is_sent').default(false),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    channels: text('channels').array().default(['push']),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    remindAtIdx: index('reminders_remind_at_idx').on(table.remindAt),
+    taskIdIdx: index('reminders_task_id_idx').on(table.taskId),
+  })
+)
 
 // Activity Log
-export const activityLog = pgTable('activity_log', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  entityType: varchar('entity_type', { length: 50 }).notNull(),
-  entityId: uuid('entity_id').notNull(),
-  action: varchar('action', { length: 50 }).notNull(),
-  changes: jsonb('changes').$type<ActivityChanges>(),
-  ipAddress: inet('ip_address'),
-  userAgent: text('user_agent'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  entityIdx: index('activity_log_entity_idx').on(table.entityType, table.entityId),
-  userCreatedIdx: index('activity_log_user_created_idx').on(table.userId, table.createdAt),
-}))
+export const activityLog = pgTable(
+  'activity_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    entityType: varchar('entity_type', { length: 50 }).notNull(),
+    entityId: uuid('entity_id').notNull(),
+    action: varchar('action', { length: 50 }).notNull(),
+    changes: jsonb('changes').$type<ActivityChanges>(),
+    ipAddress: inet('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    entityIdx: index('activity_log_entity_idx').on(
+      table.entityType,
+      table.entityId
+    ),
+    userCreatedIdx: index('activity_log_user_created_idx').on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+)
 
 // ============================================================================
 // AI ENTITIES
 // ============================================================================
 
 // AI Conversations
-export const aiConversations = pgTable('ai_conversations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
-  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
-  title: varchar('title', { length: 255 }),
-  type: conversationTypeEnum('type').default('general').notNull(),
-  isArchived: boolean('is_archived').default(false),
-  totalTokens: integer('total_tokens').default(0),
-  messageCount: integer('message_count').default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-  lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
-}, (table) => ({
-  userIdIdx: index('ai_conversations_user_id_idx').on(table.userId),
-  taskIdIdx: index('ai_conversations_task_id_idx').on(table.taskId),
-}))
+export const aiConversations = pgTable(
+  'ai_conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, {
+      onDelete: 'set null',
+    }),
+    title: varchar('title', { length: 255 }),
+    type: conversationTypeEnum('type').default('general').notNull(),
+    isArchived: boolean('is_archived').default(false),
+    totalTokens: integer('total_tokens').default(0),
+    messageCount: integer('message_count').default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userIdIdx: index('ai_conversations_user_id_idx').on(table.userId),
+    taskIdIdx: index('ai_conversations_task_id_idx').on(table.taskId),
+  })
+)
 
 // AI Messages
-export const aiMessages = pgTable('ai_messages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  conversationId: uuid('conversation_id').notNull().references(() => aiConversations.id, { onDelete: 'cascade' }),
-  role: messageRoleEnum('role').notNull(),
-  content: text('content').notNull(),
-  inputTokens: integer('input_tokens'),
-  outputTokens: integer('output_tokens'),
-  model: varchar('model', { length: 100 }),
-  metadata: jsonb('metadata').$type<MessageMetadata>().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  conversationIdIdx: index('ai_messages_conversation_id_idx').on(table.conversationId),
-}))
+export const aiMessages = pgTable(
+  'ai_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => aiConversations.id, { onDelete: 'cascade' }),
+    role: messageRoleEnum('role').notNull(),
+    content: text('content').notNull(),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    model: varchar('model', { length: 100 }),
+    provider: varchar('provider', { length: 50 }),
+    metadata: jsonb('metadata').$type<MessageMetadata>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    conversationIdIdx: index('ai_messages_conversation_id_idx').on(
+      table.conversationId
+    ),
+  })
+)
 
 // AI Context
-export const aiContext = pgTable('ai_context', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
-  conversationId: uuid('conversation_id').references(() => aiConversations.id, { onDelete: 'set null' }),
-  type: aiContextTypeEnum('type').notNull(),
-  title: varchar('title', { length: 255 }),
-  content: text('content').notNull(),
-  version: integer('version').default(1),
-  isCurrent: boolean('is_current').default(true),
-  metadata: jsonb('metadata').$type<AIContextMetadata>().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  taskIdIdx: index('ai_context_task_id_idx').on(table.taskId),
-  typeIdx: index('ai_context_type_idx').on(table.type),
-}))
+export const aiContext = pgTable(
+  'ai_context',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(
+      () => aiConversations.id,
+      { onDelete: 'set null' }
+    ),
+    type: aiContextTypeEnum('type').notNull(),
+    title: varchar('title', { length: 255 }),
+    content: text('content').notNull(),
+    version: integer('version').default(1),
+    isCurrent: boolean('is_current').default(true),
+    metadata: jsonb('metadata').$type<AIContextMetadata>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    taskIdIdx: index('ai_context_task_id_idx').on(table.taskId),
+    typeIdx: index('ai_context_type_idx').on(table.type),
+  })
+)
 
 // AI Usage
-export const aiUsage = pgTable('ai_usage', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  periodStart: date('period_start').notNull(),
-  periodEnd: date('period_end').notNull(),
-  requests: integer('requests').default(0),
-  inputTokens: integer('input_tokens').default(0),
-  outputTokens: integer('output_tokens').default(0),
-  usageByFeature: jsonb('usage_by_feature').$type<UsageByFeature>().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  userPeriodIdx: uniqueIndex('ai_usage_user_period_idx').on(table.userId, table.periodStart, table.periodEnd),
-}))
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    periodStart: date('period_start').notNull(),
+    periodEnd: date('period_end').notNull(),
+    requests: integer('requests').default(0),
+    inputTokens: integer('input_tokens').default(0),
+    outputTokens: integer('output_tokens').default(0),
+    usageByFeature: jsonb('usage_by_feature')
+      .$type<UsageByFeature>()
+      .default({}),
+    usageByProvider: jsonb('usage_by_provider')
+      .$type<UsageByProvider>()
+      .default({}),
+    estimatedCostUsd: varchar('estimated_cost_usd', { length: 20 }).default(
+      '0'
+    ),
+    costByProvider: jsonb('cost_by_provider')
+      .$type<CostByProvider>()
+      .default({}),
+    warningsSent: jsonb('warnings_sent').$type<WarningsSent>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userPeriodIdx: uniqueIndex('ai_usage_user_period_idx').on(
+      table.userId,
+      table.periodStart,
+      table.periodEnd
+    ),
+  })
+)
 
 // ============================================================================
 // AUTH ENTITIES
 // ============================================================================
 
 // Accounts (OAuth)
-export const accounts = pgTable('accounts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: varchar('type', { length: 50 }).notNull(),
-  provider: varchar('provider', { length: 50 }).notNull(),
-  providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(),
-  refreshToken: text('refresh_token'),
-  accessToken: text('access_token'),
-  expiresAt: integer('expires_at'),
-  tokenType: varchar('token_type', { length: 50 }),
-  scope: text('scope'),
-  idToken: text('id_token'),
-  sessionState: text('session_state'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  providerAccountIdx: uniqueIndex('accounts_provider_account_idx').on(table.provider, table.providerAccountId),
-  userIdIdx: index('accounts_user_id_idx').on(table.userId),
-}))
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: varchar('type', { length: 50 }).notNull(),
+    provider: varchar('provider', { length: 50 }).notNull(),
+    providerAccountId: varchar('provider_account_id', {
+      length: 255,
+    }).notNull(),
+    refreshToken: text('refresh_token'),
+    accessToken: text('access_token'),
+    expiresAt: integer('expires_at'),
+    tokenType: varchar('token_type', { length: 50 }),
+    scope: text('scope'),
+    idToken: text('id_token'),
+    sessionState: text('session_state'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    providerAccountIdx: uniqueIndex('accounts_provider_account_idx').on(
+      table.provider,
+      table.providerAccountId
+    ),
+    userIdIdx: index('accounts_user_id_idx').on(table.userId),
+  })
+)
 
 // Sessions
-export const sessions = pgTable('sessions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  sessionToken: varchar('session_token', { length: 255 }).notNull().unique(),
-  expires: timestamp('expires', { withTimezone: true }).notNull(),
-  ipAddress: inet('ip_address'),
-  userAgent: text('user_agent'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index('sessions_user_id_idx').on(table.userId),
-  expiresIdx: index('sessions_expires_idx').on(table.expires),
-}))
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sessionToken: varchar('session_token', { length: 255 }).notNull().unique(),
+    expires: timestamp('expires', { withTimezone: true }).notNull(),
+    ipAddress: inet('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('sessions_user_id_idx').on(table.userId),
+    expiresIdx: index('sessions_expires_idx').on(table.expires),
+  })
+)
 
 // Verification Tokens
-export const verificationTokens = pgTable('verification_tokens', {
-  identifier: varchar('identifier', { length: 255 }).notNull(),
-  token: varchar('token', { length: 255 }).notNull().unique(),
-  expires: timestamp('expires', { withTimezone: true }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.identifier, table.token] }),
-}))
+export const verificationTokens = pgTable(
+  'verification_tokens',
+  {
+    identifier: varchar('identifier', { length: 255 }).notNull(),
+    token: varchar('token', { length: 255 }).notNull().unique(),
+    expires: timestamp('expires', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.identifier, table.token] }),
+  })
+)
 
 // ============================================================================
 // RELATIONS
@@ -357,7 +531,10 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   user: one(users, { fields: [tasks.userId], references: [users.id] }),
-  project: one(projects, { fields: [tasks.projectId], references: [projects.id] }),
+  project: one(projects, {
+    fields: [tasks.projectId],
+    references: [projects.id],
+  }),
   parentTask: one(tasks, {
     fields: [tasks.parentTaskId],
     references: [tasks.id],
@@ -395,21 +572,39 @@ export const activityLogRelations = relations(activityLog, ({ one }) => ({
   user: one(users, { fields: [activityLog.userId], references: [users.id] }),
 }))
 
-export const aiConversationsRelations = relations(aiConversations, ({ one, many }) => ({
-  user: one(users, { fields: [aiConversations.userId], references: [users.id] }),
-  task: one(tasks, { fields: [aiConversations.taskId], references: [tasks.id] }),
-  project: one(projects, { fields: [aiConversations.projectId], references: [projects.id] }),
-  messages: many(aiMessages),
-  aiContext: many(aiContext),
-}))
+export const aiConversationsRelations = relations(
+  aiConversations,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [aiConversations.userId],
+      references: [users.id],
+    }),
+    task: one(tasks, {
+      fields: [aiConversations.taskId],
+      references: [tasks.id],
+    }),
+    project: one(projects, {
+      fields: [aiConversations.projectId],
+      references: [projects.id],
+    }),
+    messages: many(aiMessages),
+    aiContext: many(aiContext),
+  })
+)
 
 export const aiMessagesRelations = relations(aiMessages, ({ one }) => ({
-  conversation: one(aiConversations, { fields: [aiMessages.conversationId], references: [aiConversations.id] }),
+  conversation: one(aiConversations, {
+    fields: [aiMessages.conversationId],
+    references: [aiConversations.id],
+  }),
 }))
 
 export const aiContextRelations = relations(aiContext, ({ one }) => ({
   task: one(tasks, { fields: [aiContext.taskId], references: [tasks.id] }),
-  conversation: one(aiConversations, { fields: [aiContext.conversationId], references: [aiConversations.id] }),
+  conversation: one(aiConversations, {
+    fields: [aiContext.conversationId],
+    references: [aiConversations.id],
+  }),
 }))
 
 export const aiUsageRelations = relations(aiUsage, ({ one }) => ({
@@ -453,6 +648,12 @@ export interface UserPreferences {
   aiSuggestionFrequency?: 'low' | 'medium' | 'high'
   aiCommunicationStyle?: 'concise' | 'detailed'
   aiDataLearning?: boolean
+
+  // Provider preferences
+  aiPreferredProvider?: string
+  aiPreferredModel?: string
+  aiCostWarningsEnabled?: boolean
+  aiMonthlyCostLimit?: number
 
   // Task Defaults
   defaultPriority?: 'high' | 'medium' | 'low' | 'none'
@@ -532,6 +733,9 @@ export interface MessageMetadata {
   // Processing info
   processingTimeMs?: number
 
+  // Provider info
+  provider?: string | null
+
   // For assistant messages
   finishReason?: 'stop' | 'max_tokens' | 'error'
 
@@ -577,6 +781,33 @@ export interface UsageByFeature {
   research?: { requests: number; tokens: number }
   draft?: { requests: number; tokens: number }
   suggestions?: { requests: number; tokens: number }
+}
+
+export interface UsageByProvider {
+  [provider: string]: {
+    requests: number
+    inputTokens: number
+    outputTokens: number
+    byModel: {
+      [model: string]: {
+        requests: number
+        inputTokens: number
+        outputTokens: number
+      }
+    }
+  }
+}
+
+export interface CostByProvider {
+  [provider: string]: number
+}
+
+export interface WarningsSent {
+  quota80Percent?: string
+  quota90Percent?: string
+  quota95Percent?: string
+  dailyCostWarning?: string
+  monthlyCostWarning?: string
 }
 
 export interface ActivityChanges {

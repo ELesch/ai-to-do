@@ -1,7 +1,13 @@
 /**
  * AI Configuration
- * Configuration settings for Anthropic Claude API
+ * Configuration settings for multi-provider AI support
  */
+
+import type { AIProviderName } from './providers/types'
+
+// ============================================================================
+// MODEL DEFINITIONS
+// ============================================================================
 
 /**
  * Available Claude models
@@ -18,9 +24,28 @@ export const CLAUDE_MODELS = {
 export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS]
 
 /**
- * Default model for AI operations
+ * Available OpenAI/ChatGPT models
+ */
+export const OPENAI_MODELS = {
+  /** GPT-5 Mini - Fast and cost-effective */
+  GPT5_MINI: 'gpt-5-mini',
+  /** GPT-4o - Standard multimodal model */
+  GPT4O: 'gpt-4o',
+  /** GPT-4o Mini - Smaller, faster variant */
+  GPT4O_MINI: 'gpt-4o-mini',
+} as const
+
+export type OpenAIModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS]
+
+/**
+ * Default model for AI operations (legacy - use FEATURE_PROVIDER_CONFIG instead)
  */
 export const DEFAULT_MODEL: ClaudeModel = CLAUDE_MODELS.SONNET
+
+/**
+ * Default AI provider
+ */
+export const DEFAULT_PROVIDER: AIProviderName = 'openai'
 
 /**
  * Token limits configuration
@@ -131,4 +156,111 @@ export const RETRY_CONFIG = {
   MAX_DELAY_MS: 10000,
   /** Backoff multiplier */
   BACKOFF_MULTIPLIER: 2,
+} as const
+
+// ============================================================================
+// FEATURE-TO-PROVIDER MAPPING
+// ============================================================================
+
+/**
+ * Configuration for feature-to-provider mapping
+ */
+export interface FeatureProviderConfig {
+  provider: AIProviderName
+  model: string
+  maxTokens: number
+  temperature: number
+}
+
+/**
+ * Maps AI operations to their preferred provider and model
+ * GPT-5 Mini for fast/cheap operations, Claude for complex reasoning
+ */
+export const FEATURE_PROVIDER_CONFIG: Record<
+  AIOperation | 'suggestions',
+  FeatureProviderConfig
+> = {
+  /** Task decomposition - fast operation, use GPT-5 Mini */
+  decompose: {
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_MINI,
+    maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.FOCUSED,
+  },
+  /** Research - complex reasoning, use Claude */
+  research: {
+    provider: 'anthropic',
+    model: CLAUDE_MODELS.SONNET,
+    maxTokens: TOKEN_LIMITS.MEDIUM_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.BALANCED,
+  },
+  /** Content drafting - creative writing, use Claude */
+  draft: {
+    provider: 'anthropic',
+    model: CLAUDE_MODELS.SONNET,
+    maxTokens: TOKEN_LIMITS.LONG_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.CREATIVE,
+  },
+  /** Chat/conversation - fast responses, use GPT-5 Mini */
+  chat: {
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_MINI,
+    maxTokens: TOKEN_LIMITS.DEFAULT_MAX_TOKENS,
+    temperature: TEMPERATURE_PRESETS.BALANCED,
+  },
+  /** Daily briefing - fast, cheap, use GPT-5 Mini */
+  briefing: {
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_MINI,
+    maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.FOCUSED,
+  },
+  /** Quick suggestions - fast, cheap, use GPT-5 Mini */
+  suggestions: {
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_MINI,
+    maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.CREATIVE,
+  },
+}
+
+/**
+ * Get the provider configuration for a specific feature
+ */
+export function getFeatureProviderConfig(
+  feature: AIOperation | 'suggestions'
+): FeatureProviderConfig {
+  return FEATURE_PROVIDER_CONFIG[feature]
+}
+
+// ============================================================================
+// USAGE LIMITS AND COST THRESHOLDS
+// ============================================================================
+
+/**
+ * Per-provider usage limits (monthly)
+ */
+export const PROVIDER_LIMITS = {
+  anthropic: {
+    requestsPerMonth: 10000,
+    tokensPerMonth: 5_000_000,
+    warningThreshold: 0.8, // Warn at 80%
+  },
+  openai: {
+    requestsPerMonth: 10000,
+    tokensPerMonth: 10_000_000,
+    warningThreshold: 0.8,
+  },
+} as const
+
+/**
+ * Cost thresholds for soft limit warnings (in USD)
+ */
+export const COST_THRESHOLDS = {
+  /** Daily cost warning threshold */
+  dailyWarning: 5.0,
+  /** Monthly cost warning threshold */
+  monthlyWarning: 50.0,
+  /** Monthly soft limit (allow override) */
+  monthlyHardLimit: 100.0,
 } as const

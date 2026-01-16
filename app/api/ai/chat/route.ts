@@ -13,11 +13,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { aiConversations, aiMessages, tasks } from '@/lib/db/schema'
-import { aiClient, AIRateLimitError } from '@/lib/ai/client'
+import { AIRateLimitError } from '@/lib/ai/client'
 import { getSystemPrompt } from '@/lib/ai/prompts'
 import { chatRequestSchema, type StreamEvent } from '@/types/ai'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
+import {
+  providerRegistry,
+  AIRateLimitError as ProviderRateLimitError,
+} from '@/lib/ai/providers'
+import type { AIProviderName } from '@/lib/ai/providers/types'
 
 // =============================================================================
 // RATE LIMITING (Basic in-memory implementation)
@@ -36,14 +41,22 @@ const RATE_LIMIT_MAX_REQUESTS = 20 // 20 requests per minute
  * Check rate limit for a user
  * Returns true if request is allowed, false if rate limited
  */
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetIn: number } {
+function checkRateLimit(userId: string): {
+  allowed: boolean
+  remaining: number
+  resetIn: number
+} {
   const now = Date.now()
   const entry = rateLimitStore.get(userId)
 
   if (!entry || now - entry.windowStart >= RATE_LIMIT_WINDOW_MS) {
     // Start new window
     rateLimitStore.set(userId, { count: 1, windowStart: now })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS }
+    return {
+      allowed: true,
+      remaining: RATE_LIMIT_MAX_REQUESTS - 1,
+      resetIn: RATE_LIMIT_WINDOW_MS,
+    }
   }
 
   if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
@@ -58,14 +71,17 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number; 
 }
 
 // Clean up old rate limit entries periodically (every 5 minutes)
-setInterval(() => {
-  const now = Date.now()
-  for (const [userId, entry] of rateLimitStore.entries()) {
-    if (now - entry.windowStart >= RATE_LIMIT_WINDOW_MS * 2) {
-      rateLimitStore.delete(userId)
+setInterval(
+  () => {
+    const now = Date.now()
+    for (const [userId, entry] of rateLimitStore.entries()) {
+      if (now - entry.windowStart >= RATE_LIMIT_WINDOW_MS * 2) {
+        rateLimitStore.delete(userId)
+      }
     }
-  }
-}, 5 * 60 * 1000)
+  },
+  5 * 60 * 1000
+)
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -119,7 +135,13 @@ async function getOrCreateConversation(
       userId,
       taskId: taskId || null,
       projectId: projectId || null,
-      type: conversationType as 'general' | 'decompose' | 'research' | 'draft' | 'planning' | 'coaching',
+      type: conversationType as
+        | 'general'
+        | 'decompose'
+        | 'research'
+        | 'draft'
+        | 'planning'
+        | 'coaching',
       title: null,
       messageCount: 0,
       totalTokens: 0,
@@ -207,7 +229,54 @@ export async function POST(request: NextRequest) {
       conversationType,
       conversationHistory,
       stream,
+      provider: requestedProvider,
+      model: requestedModel,
     } = validatedData
+
+    // Validate provider/model if specified
+    let selectedProvider = providerRegistry.getDefault()
+    const selectedModel: string | undefined = requestedModel
+    const warnings: string[] = []
+
+    if (requestedProvider) {
+      const provider = providerRegistry.get(requestedProvider as AIProviderName)
+      if (!provider) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Provider '${requestedProvider}' not found`,
+          },
+          { status: 400 }
+        )
+      }
+      if (!provider.isConfigured()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Provider '${requestedProvider}' is not configured`,
+          },
+          { status: 400 }
+        )
+      }
+      selectedProvider = provider
+
+      // Validate model if specified
+      if (requestedModel) {
+        const modelExists = provider.models.some((m) => m.id === requestedModel)
+        if (!modelExists) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Model '${requestedModel}' not found for provider '${requestedProvider}'`,
+            },
+            { status: 400 }
+          )
+        }
+      }
+    } else if (requestedModel) {
+      // Model specified without provider - add warning
+      warnings.push('Model specified without provider; using default provider')
+    }
 
     // Verify task belongs to user if taskId provided
     let taskContext = null
@@ -276,25 +345,53 @@ export async function POST(request: NextRequest) {
             let totalInputTokens = 0
             let totalOutputTokens = 0
 
-            // Stream from AI client
+            // Stream from AI provider
             try {
-              for await (const chunk of aiClient.streamChat(
-                messages,
+              const providerRequest = {
+                messages: messages.map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                })),
                 systemPrompt,
-                { userId: user.id, taskId, stream: true }
-              )) {
-                fullResponse += chunk
+                model: selectedModel ?? selectedProvider.models[0].id,
+                maxTokens: 4096,
+                temperature: 0.7,
+                userId: user.id,
+                taskId,
+              }
+              const stream = selectedProvider.streamChat(providerRequest)
+              let result
+              while (true) {
+                const { value, done } = await stream.next()
+                if (done) {
+                  result = value
+                  break
+                }
+                fullResponse += value
                 const deltaEvent: StreamEvent = {
                   type: 'content_block_delta',
-                  data: chunk,
+                  data: value as string,
                 }
                 controller.enqueue(sseEncoder.encode(deltaEvent))
               }
+              if (result) {
+                totalInputTokens = result.usage.inputTokens
+                totalOutputTokens = result.usage.outputTokens
+              }
             } catch (aiError) {
-              if (aiError instanceof AIRateLimitError) {
-                controller.enqueue(sseEncoder.encodeError('AI rate limit exceeded. Please try again later.'))
+              if (
+                aiError instanceof AIRateLimitError ||
+                aiError instanceof ProviderRateLimitError
+              ) {
+                controller.enqueue(
+                  sseEncoder.encodeError(
+                    'AI rate limit exceeded. Please try again later.'
+                  )
+                )
               } else {
-                controller.enqueue(sseEncoder.encodeError('AI service temporarily unavailable.'))
+                controller.enqueue(
+                  sseEncoder.encodeError('AI service temporarily unavailable.')
+                )
               }
               controller.close()
               return
@@ -314,7 +411,10 @@ export async function POST(request: NextRequest) {
               .update(aiConversations)
               .set({
                 messageCount: (conversation.messageCount ?? 0) + 2,
-                totalTokens: (conversation.totalTokens ?? 0) + totalInputTokens + totalOutputTokens,
+                totalTokens:
+                  (conversation.totalTokens ?? 0) +
+                  totalInputTokens +
+                  totalOutputTokens,
                 lastMessageAt: new Date(),
                 updatedAt: new Date(),
               })
@@ -333,7 +433,11 @@ export async function POST(request: NextRequest) {
             controller.close()
           } catch (error) {
             console.error('Streaming error:', error)
-            controller.enqueue(sseEncoder.encodeError('An error occurred while processing your request.'))
+            controller.enqueue(
+              sseEncoder.encodeError(
+                'An error occurred while processing your request.'
+              )
+            )
             controller.close()
           }
         },
@@ -350,11 +454,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle non-streaming response
-    const aiResponse = await aiClient.chat(messages, systemPrompt, {
+    const providerRequest = {
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      systemPrompt,
+      model: selectedModel ?? selectedProvider.models[0].id,
+      maxTokens: 4096,
+      temperature: 0.7,
       userId: user.id,
       taskId,
-      stream: false,
-    })
+    }
+    const aiResponse = await selectedProvider.chat(providerRequest)
 
     // Save assistant message to database
     await db.insert(aiMessages).values({
@@ -388,6 +497,7 @@ export async function POST(request: NextRequest) {
           response: aiResponse.content,
           conversationId: conversation.id,
           usage: aiResponse.usage,
+          warnings: warnings.length > 0 ? warnings : undefined,
         },
       },
       {
@@ -410,7 +520,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (error instanceof AIRateLimitError) {
+    if (
+      error instanceof AIRateLimitError ||
+      error instanceof ProviderRateLimitError
+    ) {
       return NextResponse.json(
         { success: false, error: 'AI rate limit exceeded' },
         { status: 429 }

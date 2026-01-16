@@ -7,19 +7,20 @@ import { db } from '@/lib/db'
 import {
   aiConversations,
   aiMessages,
-  aiUsage,
   tasks,
   conversationTypeEnum,
   type UsageByFeature,
 } from '@/lib/db/schema'
 import { eq, and, desc, sql, isNull } from 'drizzle-orm'
-import { aiClient, type MessageParam } from '@/lib/ai/client'
+import { providerRegistry, type ProviderMessage } from '@/lib/ai/providers'
+import { getFeatureProviderConfig, type AIOperation } from '@/lib/ai/config'
+import { aiUsageService } from './ai-usage.service'
+import type { AIProviderName, UsageWarning } from '@/lib/ai/providers/types'
 import {
   getSystemPrompt,
   getDecomposePrompt,
   getResearchPrompt,
   getDraftPrompt,
-  TASK_ASSISTANT_PROMPT,
   type Task as PromptTask,
 } from '@/lib/ai/prompts'
 import type {
@@ -59,9 +60,31 @@ class AIService {
       projectId?: string
       conversationId?: string
       conversationType?: ConvType
+      preferredProvider?: AIProviderName
+      preferredModel?: string
     } = {}
-  ): Promise<ChatResponse> {
-    const { taskId, projectId, conversationId, conversationType = 'general' } = options
+  ): Promise<
+    ChatResponse & {
+      warnings?: UsageWarning[]
+      provider?: string
+      model?: string
+    }
+  > {
+    const {
+      taskId,
+      projectId,
+      conversationId,
+      conversationType = 'general',
+      preferredProvider,
+      preferredModel,
+    } = options
+
+    // Get provider configuration for chat
+    const config = getFeatureProviderConfig('chat')
+    const provider =
+      providerRegistry.get(preferredProvider ?? config.provider) ??
+      providerRegistry.getDefault()
+    const modelToUse = preferredModel ?? config.model
 
     // Get or create conversation
     let conversation: { id: string; messages: ChatMessage[] }
@@ -82,7 +105,7 @@ class AIService {
     const task = taskId ? await this.getTaskContext(userId, taskId) : null
 
     // Build messages array from conversation history
-    const messages: MessageParam[] = [
+    const messages: ProviderMessage[] = [
       ...conversation.messages.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -93,8 +116,13 @@ class AIService {
     // Get system prompt with task context
     const systemPrompt = getSystemPrompt(task ?? undefined)
 
-    // Call AI
-    const response = await aiClient.chat(messages, systemPrompt, {
+    // Call AI using provider abstraction
+    const response = await provider.chat({
+      messages,
+      systemPrompt,
+      model: modelToUse,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
       userId,
       taskId,
     })
@@ -102,28 +130,42 @@ class AIService {
     // Save user message
     await this.saveMessage(conversation.id, 'user', message)
 
-    // Save assistant message with token usage
+    // Save assistant message with token usage and provider info
     await this.saveMessage(conversation.id, 'assistant', response.content, {
       inputTokens: response.usage.inputTokens,
       outputTokens: response.usage.outputTokens,
-      model: 'claude-3-sonnet-20240229',
+      model: response.model,
+      provider: response.provider,
     })
 
-    // Track usage
-    await this.trackUsage(userId, 'chat', response.usage.inputTokens + response.usage.outputTokens)
+    // Track usage with provider abstraction
+    const warnings = await aiUsageService.trackUsage(
+      userId,
+      response.provider,
+      response.model,
+      'chat',
+      response.usage.inputTokens,
+      response.usage.outputTokens
+    )
 
     // Update conversation metadata
-    await this.updateConversationMetadata(conversation.id, response.usage.inputTokens + response.usage.outputTokens)
+    await this.updateConversationMetadata(
+      conversation.id,
+      response.usage.inputTokens + response.usage.outputTokens
+    )
 
     return {
       response: response.content,
       conversationId: conversation.id,
       usage: response.usage,
+      warnings,
+      provider: response.provider,
+      model: response.model,
     }
   }
 
   /**
-   * Stream a response from Claude
+   * Stream a response from the AI provider
    */
   async *streamMessage(
     userId: string,
@@ -133,9 +175,36 @@ class AIService {
       projectId?: string
       conversationId?: string
       conversationType?: ConvType
+      preferredProvider?: AIProviderName
+      preferredModel?: string
     } = {}
-  ): AsyncGenerator<{ chunk: string; done: boolean; conversationId?: string }, void, unknown> {
-    const { taskId, projectId, conversationId, conversationType = 'general' } = options
+  ): AsyncGenerator<
+    {
+      chunk: string
+      done: boolean
+      conversationId?: string
+      warnings?: UsageWarning[]
+      provider?: string
+      model?: string
+    },
+    void,
+    unknown
+  > {
+    const {
+      taskId,
+      projectId,
+      conversationId,
+      conversationType = 'general',
+      preferredProvider,
+      preferredModel,
+    } = options
+
+    // Get provider configuration for chat
+    const config = getFeatureProviderConfig('chat')
+    const provider =
+      providerRegistry.get(preferredProvider ?? config.provider) ??
+      providerRegistry.getDefault()
+    const modelToUse = preferredModel ?? config.model
 
     // Get or create conversation
     let convId: string
@@ -143,7 +212,10 @@ class AIService {
 
     if (conversationId) {
       convId = conversationId
-      conversationMessages = await this.getConversationHistory(conversationId, userId)
+      conversationMessages = await this.getConversationHistory(
+        conversationId,
+        userId
+      )
     } else {
       const newConv = await this.createConversation(userId, {
         taskId,
@@ -158,7 +230,7 @@ class AIService {
     const task = taskId ? await this.getTaskContext(userId, taskId) : null
 
     // Build messages array
-    const messages: MessageParam[] = [
+    const messages: ProviderMessage[] = [
       ...conversationMessages.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -172,26 +244,68 @@ class AIService {
     // Save user message
     await this.saveMessage(convId, 'user', message)
 
-    // Stream response
+    // Stream response using provider abstraction
     let fullResponse = ''
-    for await (const chunk of aiClient.streamChat(messages, systemPrompt, {
+    const stream = provider.streamChat({
+      messages,
+      systemPrompt,
+      model: modelToUse,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
       userId,
       taskId,
-    })) {
-      fullResponse += chunk
-      yield { chunk, done: false, conversationId: convId }
+    })
+
+    let finalResponse = null
+    for await (const chunk of stream) {
+      if (typeof chunk === 'string') {
+        fullResponse += chunk
+        yield { chunk, done: false, conversationId: convId }
+      }
+    }
+
+    // Get the final response with usage stats (returned from generator)
+    // Note: In async generators, the return value comes after iteration
+    // We need to capture it from the stream's return
+    try {
+      const result = await stream.next()
+      if (result.done && result.value) {
+        finalResponse = result.value
+      }
+    } catch {
+      // Stream already completed, finalResponse stays null
     }
 
     // Save assistant message after streaming completes
     await this.saveMessage(convId, 'assistant', fullResponse, {
-      model: 'claude-3-sonnet-20240229',
+      model: finalResponse?.model ?? modelToUse,
+      provider: finalResponse?.provider ?? provider.name,
+      inputTokens: finalResponse?.usage?.inputTokens,
+      outputTokens: finalResponse?.usage?.outputTokens,
     })
 
-    // Track usage (estimate tokens for streaming)
-    const estimatedTokens = Math.ceil((message.length + fullResponse.length) / 4)
-    await this.trackUsage(userId, 'chat', estimatedTokens)
+    // Track usage with provider abstraction
+    const inputTokens =
+      finalResponse?.usage?.inputTokens ?? Math.ceil(message.length / 4)
+    const outputTokens =
+      finalResponse?.usage?.outputTokens ?? Math.ceil(fullResponse.length / 4)
+    const warnings = await aiUsageService.trackUsage(
+      userId,
+      finalResponse?.provider ?? provider.name,
+      finalResponse?.model ?? modelToUse,
+      'chat',
+      inputTokens,
+      outputTokens
+    )
 
-    yield { chunk: '', done: true, conversationId: convId }
+    yield {
+      chunk: '',
+      done: true,
+      conversationId: convId,
+      warnings,
+      provider: finalResponse?.provider ?? provider.name,
+      model: finalResponse?.model ?? modelToUse,
+    }
   }
 
   /**
@@ -203,11 +317,16 @@ class AIService {
     message: string,
     conversationHistory: ChatMessage[] = []
   ): Promise<{ response: string; conversationId: string }> {
+    // Get provider configuration for chat
+    const config = getFeatureProviderConfig('chat')
+    const provider =
+      providerRegistry.get(config.provider) ?? providerRegistry.getDefault()
+
     // Get task context
     const task = await this.getTaskContext(userId, taskId)
 
     // Build messages array
-    const messages: MessageParam[] = [
+    const messages: ProviderMessage[] = [
       ...conversationHistory.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -218,8 +337,13 @@ class AIService {
     // Get system prompt with task context
     const systemPrompt = getSystemPrompt(task ?? undefined)
 
-    // Call AI
-    const response = await aiClient.chat(messages, systemPrompt, {
+    // Call AI using provider abstraction
+    const response = await provider.chat({
+      messages,
+      systemPrompt,
+      model: config.model,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
       userId,
       taskId,
     })
@@ -231,13 +355,30 @@ class AIService {
       title: message.slice(0, 100),
       messages: [
         ...conversationHistory,
-        { id: crypto.randomUUID(), role: 'user', content: message, timestamp: new Date() },
-        { id: crypto.randomUUID(), role: 'assistant', content: response.content, timestamp: new Date() },
+        {
+          id: crypto.randomUUID(),
+          role: 'user',
+          content: message,
+          timestamp: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: response.content,
+          timestamp: new Date(),
+        },
       ],
     })
 
-    // Track usage
-    await this.trackUsage(userId, 'chat', response.usage.inputTokens + response.usage.outputTokens)
+    // Track usage with provider abstraction
+    await aiUsageService.trackUsage(
+      userId,
+      response.provider,
+      response.model,
+      'chat',
+      response.usage.inputTokens,
+      response.usage.outputTokens
+    )
 
     return {
       response: response.content,
@@ -252,6 +393,11 @@ class AIService {
     userId: string,
     taskId: string
   ): Promise<{ subtasks: string[]; reasoning: string }> {
+    // Get provider configuration for decompose
+    const config = getFeatureProviderConfig('decompose')
+    const provider =
+      providerRegistry.get(config.provider) ?? providerRegistry.getDefault()
+
     const task = await this.getTaskContext(userId, taskId)
 
     if (!task) {
@@ -267,10 +413,24 @@ Due Date: ${task.dueDate ? task.dueDate.toISOString() : 'No due date'}
 
 Provide 3-7 actionable subtasks.`
 
-    const response = await aiClient.chat(
-      [{ role: 'user', content: userMessage }],
+    const response = await provider.chat({
+      messages: [{ role: 'user', content: userMessage }],
       systemPrompt,
-      { userId, taskId, temperature: 0.5 }
+      model: config.model,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
+      userId,
+      taskId,
+    })
+
+    // Track usage with provider abstraction
+    await aiUsageService.trackUsage(
+      userId,
+      response.provider,
+      response.model,
+      'decompose',
+      response.usage.inputTokens,
+      response.usage.outputTokens
     )
 
     // Parse response to extract subtasks
@@ -285,6 +445,11 @@ Provide 3-7 actionable subtasks.`
     taskId: string,
     query: string
   ): Promise<{ findings: string; sources: string[] }> {
+    // Get provider configuration for research
+    const config = getFeatureProviderConfig('research')
+    const provider =
+      providerRegistry.get(config.provider) ?? providerRegistry.getDefault()
+
     const task = await this.getTaskContext(userId, taskId)
 
     const systemPrompt = getResearchPrompt()
@@ -295,10 +460,24 @@ Research Query: ${query}
 
 Provide a comprehensive summary with key findings.`
 
-    const response = await aiClient.chat(
-      [{ role: 'user', content: userMessage }],
+    const response = await provider.chat({
+      messages: [{ role: 'user', content: userMessage }],
       systemPrompt,
-      { userId, taskId, maxTokens: 2048 }
+      model: config.model,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
+      userId,
+      taskId,
+    })
+
+    // Track usage with provider abstraction
+    await aiUsageService.trackUsage(
+      userId,
+      response.provider,
+      response.model,
+      'research',
+      response.usage.inputTokens,
+      response.usage.outputTokens
     )
 
     return {
@@ -316,6 +495,11 @@ Provide a comprehensive summary with key findings.`
     draftType: 'email' | 'document' | 'outline' | 'general',
     instructions: string
   ): Promise<{ draft: string; suggestions: string[] }> {
+    // Get provider configuration for draft
+    const config = getFeatureProviderConfig('draft')
+    const provider =
+      providerRegistry.get(config.provider) ?? providerRegistry.getDefault()
+
     const task = await this.getTaskContext(userId, taskId)
 
     const systemPrompt = getDraftPrompt(draftType)
@@ -325,10 +509,24 @@ Task: ${task?.title ?? 'Unknown task'}
 Description: ${task?.description ?? ''}
 Instructions: ${instructions}`
 
-    const response = await aiClient.chat(
-      [{ role: 'user', content: userMessage }],
+    const response = await provider.chat({
+      messages: [{ role: 'user', content: userMessage }],
       systemPrompt,
-      { userId, taskId, maxTokens: 2048, temperature: 0.7 }
+      model: config.model,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
+      userId,
+      taskId,
+    })
+
+    // Track usage with provider abstraction
+    await aiUsageService.trackUsage(
+      userId,
+      response.provider,
+      response.model,
+      'draft',
+      response.usage.inputTokens,
+      response.usage.outputTokens
     )
 
     return {
@@ -344,6 +542,11 @@ Instructions: ${instructions}`
     userId: string,
     taskId: string
   ): Promise<{ suggestions: AISuggestion[] }> {
+    // Get provider configuration for suggestions (for future AI-powered suggestions)
+    const config = getFeatureProviderConfig('suggestions')
+    // Note: config is available for future AI-powered suggestion generation
+    void config // Mark as used to prevent lint warning
+
     const task = await this.getTaskContext(userId, taskId)
 
     if (!task) {
@@ -472,6 +675,7 @@ Instructions: ${instructions}`
       inputTokens?: number
       outputTokens?: number
       model?: string
+      provider?: string
     }
   ): Promise<void> {
     await db.insert(aiMessages).values({
@@ -481,7 +685,9 @@ Instructions: ${instructions}`
       inputTokens: metadata?.inputTokens ?? null,
       outputTokens: metadata?.outputTokens ?? null,
       model: metadata?.model ?? null,
-      metadata: {},
+      metadata: {
+        provider: metadata?.provider ?? null,
+      },
     })
 
     // Update conversation message count
@@ -612,77 +818,39 @@ Instructions: ${instructions}`
   }
 
   // ============================================================================
-  // USAGE TRACKING
+  // USAGE TRACKING (LEGACY - delegates to aiUsageService)
   // ============================================================================
 
   /**
    * Track token usage in ai_usage table
+   * @deprecated Use aiUsageService.trackUsage() directly for new code
    */
   async trackUsage(
     userId: string,
     feature: AIFeature,
     tokens: number
   ): Promise<void> {
-    const today = new Date()
-    const periodStart = new Date(today.getFullYear(), today.getMonth(), 1)
-    const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    // Delegate to aiUsageService with default provider
+    // This maintains backward compatibility for code that doesn't know about providers
+    const config = getFeatureProviderConfig(
+      feature as AIOperation | 'suggestions'
+    )
+    const inputTokens = Math.floor(tokens * 0.3)
+    const outputTokens = Math.floor(tokens * 0.7)
 
-    // Format dates as strings for database
-    const periodStartStr = periodStart.toISOString().split('T')[0]
-    const periodEndStr = periodEnd.toISOString().split('T')[0]
-
-    // Try to find existing usage record for this period
-    const existingUsage = await db.query.aiUsage.findFirst({
-      where: and(
-        eq(aiUsage.userId, userId),
-        eq(aiUsage.periodStart, periodStartStr),
-        eq(aiUsage.periodEnd, periodEndStr)
-      ),
-    })
-
-    if (existingUsage) {
-      // Update existing record
-      const currentUsageByFeature = (existingUsage.usageByFeature ?? {}) as UsageByFeature
-      const featureUsage = currentUsageByFeature[feature] ?? { requests: 0, tokens: 0 }
-
-      const updatedUsageByFeature: UsageByFeature = {
-        ...currentUsageByFeature,
-        [feature]: {
-          requests: featureUsage.requests + 1,
-          tokens: featureUsage.tokens + tokens,
-        },
-      }
-
-      await db
-        .update(aiUsage)
-        .set({
-          requests: sql`${aiUsage.requests} + 1`,
-          inputTokens: sql`${aiUsage.inputTokens} + ${Math.floor(tokens * 0.3)}`, // Estimate input vs output
-          outputTokens: sql`${aiUsage.outputTokens} + ${Math.floor(tokens * 0.7)}`,
-          usageByFeature: updatedUsageByFeature,
-          updatedAt: new Date(),
-        })
-        .where(eq(aiUsage.id, existingUsage.id))
-    } else {
-      // Create new usage record
-      const usageByFeature: UsageByFeature = {
-        [feature]: { requests: 1, tokens },
-      }
-
-      await db.insert(aiUsage).values({
-        userId,
-        periodStart: periodStartStr,
-        periodEnd: periodEndStr,
-        requests: 1,
-        inputTokens: Math.floor(tokens * 0.3),
-        outputTokens: Math.floor(tokens * 0.7),
-        usageByFeature,
-      })
-    }
+    await aiUsageService.trackUsage(
+      userId,
+      config.provider,
+      config.model,
+      feature,
+      inputTokens,
+      outputTokens
+    )
   }
 
   /**
    * Get usage statistics for a user
+   * @deprecated Use aiUsageService.getUsageStats() directly for new code
    */
   async getUsageStats(
     userId: string,
@@ -697,37 +865,18 @@ Instructions: ${instructions}`
     periodStart: Date
     periodEnd: Date
   }> {
-    const today = new Date()
-    const periodStart = options.periodStart ?? new Date(today.getFullYear(), today.getMonth(), 1)
-    const periodEnd = options.periodEnd ?? new Date(today.getFullYear(), today.getMonth() + 1, 0)
-
-    const periodStartStr = periodStart.toISOString().split('T')[0]
-    const periodEndStr = periodEnd.toISOString().split('T')[0]
-
-    const usage = await db.query.aiUsage.findFirst({
-      where: and(
-        eq(aiUsage.userId, userId),
-        eq(aiUsage.periodStart, periodStartStr),
-        eq(aiUsage.periodEnd, periodEndStr)
-      ),
-    })
-
-    if (!usage) {
-      return {
-        totalRequests: 0,
-        totalTokens: 0,
-        usageByFeature: {},
-        periodStart,
-        periodEnd,
-      }
-    }
+    // Delegate to aiUsageService
+    const stats = await aiUsageService.getUsageStats(
+      userId,
+      options.periodStart || options.periodEnd ? 'current' : 'current'
+    )
 
     return {
-      totalRequests: usage.requests ?? 0,
-      totalTokens: (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0),
-      usageByFeature: (usage.usageByFeature ?? {}) as UsageByFeature,
-      periodStart,
-      periodEnd,
+      totalRequests: stats.totalRequests,
+      totalTokens: stats.totalTokens,
+      usageByFeature: stats.byFeature,
+      periodStart: stats.periodStart,
+      periodEnd: stats.periodEnd,
     }
   }
 
@@ -738,7 +887,10 @@ Instructions: ${instructions}`
   /**
    * Get task context for AI operations
    */
-  private async getTaskContext(userId: string, taskId: string): Promise<Task | null> {
+  private async getTaskContext(
+    userId: string,
+    taskId: string
+  ): Promise<Task | null> {
     const task = await db.query.tasks.findFirst({
       where: and(
         eq(tasks.id, taskId),
@@ -801,7 +953,10 @@ Instructions: ${instructions}`
   /**
    * Delete a conversation
    */
-  async deleteConversation(conversationId: string, userId: string): Promise<void> {
+  async deleteConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<void> {
     // Verify ownership
     const conversation = await db.query.aiConversations.findFirst({
       where: and(
@@ -815,16 +970,23 @@ Instructions: ${instructions}`
     }
 
     // Delete messages first (cascade should handle this, but explicit for safety)
-    await db.delete(aiMessages).where(eq(aiMessages.conversationId, conversationId))
+    await db
+      .delete(aiMessages)
+      .where(eq(aiMessages.conversationId, conversationId))
 
     // Delete conversation
-    await db.delete(aiConversations).where(eq(aiConversations.id, conversationId))
+    await db
+      .delete(aiConversations)
+      .where(eq(aiConversations.id, conversationId))
   }
 
   /**
    * Archive a conversation
    */
-  async archiveConversation(conversationId: string, userId: string): Promise<void> {
+  async archiveConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<void> {
     const conversation = await db.query.aiConversations.findFirst({
       where: and(
         eq(aiConversations.id, conversationId),

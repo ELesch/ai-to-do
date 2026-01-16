@@ -1,25 +1,42 @@
 /**
  * AIChat Component
- * Chat interface for AI conversations
+ * Chat interface for AI conversations with streaming support
  */
 
 'use client'
 
-import { type FC, useState, type FormEvent } from 'react'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-}
+import { type FC, useState, type FormEvent, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import { useAIChat, type Message } from '@/hooks/use-ai-chat'
 
 interface AIChatProps {
   taskId?: string
+  taskTitle?: string
 }
 
-export const AIChat: FC<AIChatProps> = ({ taskId }) => {
-  const [messages, setMessages] = useState<Message[]>([])
+export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
   const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const {
+    messages,
+    isLoading,
+    isStreaming,
+    error,
+    sendMessage,
+    stopStreaming,
+    clearMessages,
+  } = useAIChat({
+    taskId,
+    onError: (err) => {
+      console.error('AI chat error:', err)
+    },
+  })
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -27,79 +44,74 @@ export const AIChat: FC<AIChatProps> = ({ taskId }) => {
 
     const userMessage = input.trim()
     setInput('')
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }])
-    setIsLoading(true)
-
-    try {
-      // TODO: Call AI API
-      // const response = await fetch('/api/ai/chat', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ taskId, message: userMessage, conversationHistory: messages }),
-      // })
-      // const data = await response.json()
-
-      // Placeholder response
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: 'AI responses will be available once the AI service is connected.',
-          },
-        ])
-        setIsLoading(false)
-      }, 500)
-    } catch (error) {
-      console.error('AI chat error:', error)
-      setIsLoading(false)
-    }
+    await sendMessage(userMessage)
   }
 
   return (
     <div className="flex h-full flex-col">
+      {/* Header with clear button */}
+      {messages.length > 0 && (
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <span className="text-xs text-gray-500">
+            {messages.length} message{messages.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={clearMessages}
+            className="text-xs text-gray-500 hover:text-gray-700"
+          >
+            Clear chat
+          </button>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 text-sm">
-            <p>How can I help you with your tasks?</p>
-            {taskId && (
-              <p className="mt-2 text-xs">
-                Context: Task {taskId}
+          <div className="py-4 text-center text-sm text-gray-500">
+            <p>How can I help you with this task?</p>
+            {taskTitle && (
+              <p className="mt-2 text-xs text-gray-400 italic">
+                Context: {taskTitle}
               </p>
             )}
           </div>
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                {message.content}
-              </div>
-            </div>
+          messages.map((message) => (
+            <MessageBubble key={message.id} message={message} />
           ))
         )}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2">
-              <span className="animate-pulse">Thinking...</span>
-            </div>
+
+        {/* Error display */}
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p className="font-medium">Error</p>
+            <p className="text-red-600">{error.message}</p>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* Stop button when streaming */}
+      {isStreaming && (
+        <div className="border-t px-3 py-2">
+          <button
+            type="button"
+            onClick={stopStreaming}
+            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Stop generating
+          </button>
+        </div>
+      )}
+
       {/* Input */}
-      <form onSubmit={handleSubmit} className="border-t p-4" aria-label="Chat with AI assistant">
+      <form
+        onSubmit={handleSubmit}
+        className="border-t p-3"
+        aria-label="Chat with AI assistant"
+      >
         <div className="flex gap-2">
           <label htmlFor="ai-chat-input" className="sr-only">
             Message to AI assistant
@@ -110,20 +122,51 @@ export const AIChat: FC<AIChatProps> = ({ taskId }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask me anything..."
-            className="flex-1 rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             disabled={isLoading}
-            aria-describedby={taskId ? 'ai-chat-context' : undefined}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             aria-label="Send message"
           >
-            Send
+            {isLoading && !isStreaming ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              'Send'
+            )}
           </button>
         </div>
       </form>
+    </div>
+  )
+}
+
+/**
+ * Message bubble component with markdown support
+ */
+const MessageBubble: FC<{ message: Message }> = ({ message }) => {
+  const isUser = message.role === 'user'
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[85%] rounded-lg px-3 py-2 ${
+          isUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
+        }`}
+      >
+        {isUser ? (
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        ) : (
+          <div className="prose prose-sm prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-pre:bg-gray-800 prose-pre:text-gray-100 max-w-none">
+            <ReactMarkdown>{message.content || '...'}</ReactMarkdown>
+          </div>
+        )}
+        {message.isStreaming && (
+          <span className="ml-1 inline-block h-2 w-2 animate-pulse rounded-full bg-gray-400" />
+        )}
+      </div>
     </div>
   )
 }

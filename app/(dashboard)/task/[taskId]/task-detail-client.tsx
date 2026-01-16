@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { TaskDetail, type TaskFormValues } from '@/components/features/tasks'
 import { ResearchPanel } from '@/components/features/ai/ResearchPanel'
 import { DraftPanel } from '@/components/features/ai/DraftPanel'
+import { AIChat } from '@/components/features/ai/ai-chat'
 import { Button } from '@/components/ui/button'
 import type { TaskPriority } from '@/types/task'
 import {
@@ -286,52 +287,32 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
         </div>
 
         {/* AI Panel (task-specific) */}
-        <aside className="w-96 rounded-lg border bg-gray-50 p-4">
-          <h2 className="mb-4 font-semibold">AI Assistant</h2>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">
-              AI assistance for this task. You can ask questions, get
-              suggestions, or break down this task into subtasks.
-            </p>
-            <div className="space-y-2">
+        <aside className="flex w-96 flex-col rounded-lg border bg-gray-50">
+          <div className="border-b p-4">
+            <h2 className="font-semibold">AI Assistant</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
-              >
-                Break down into subtasks
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-2"
+                className="gap-1 text-xs"
                 onClick={handleOpenResearch}
               >
                 <SearchIcon />
-                Research this topic
+                Research
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full justify-start gap-2"
+                className="gap-1 text-xs"
                 onClick={handleOpenDraft}
               >
                 <PenIcon />
-                Draft related content
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-              >
-                Suggest improvements
+                Draft
               </Button>
             </div>
-            <div className="border-t pt-4">
-              <p className="text-xs text-gray-400 italic">
-                AI chat interface coming soon...
-              </p>
-            </div>
+          </div>
+          <div className="min-h-0 flex-1">
+            <AIChat taskId={task.id} taskTitle={task.title} />
           </div>
         </aside>
       </div>

@@ -59,7 +59,14 @@ export const conversationSchema = z.object({
   taskId: z.string().uuid().optional(),
   projectId: z.string().uuid().optional(),
   title: z.string().optional(),
-  type: z.enum(['general', 'decompose', 'research', 'draft', 'planning', 'coaching']),
+  type: z.enum([
+    'general',
+    'decompose',
+    'research',
+    'draft',
+    'planning',
+    'coaching',
+  ]),
   messages: z.array(chatMessageSchema),
   totalTokens: z.number().default(0),
   messageCount: z.number().default(0),
@@ -78,7 +85,9 @@ export const conversationHistoryMessageSchema = z.object({
   content: z.string(),
 })
 
-export type ConversationHistoryMessage = z.infer<typeof conversationHistoryMessageSchema>
+export type ConversationHistoryMessage = z.infer<
+  typeof conversationHistoryMessageSchema
+>
 
 /**
  * AI chat request schema
@@ -88,12 +97,17 @@ export const chatRequestSchema = z.object({
   projectId: z.string().uuid().optional(),
   conversationId: z.string().uuid().optional(),
   message: z.string().min(1).max(10000),
-  conversationType: z.enum(['general', 'decompose', 'research', 'draft', 'planning', 'coaching']).optional().default('general'),
+  conversationType: z
+    .enum(['general', 'decompose', 'research', 'draft', 'planning', 'coaching'])
+    .optional()
+    .default('general'),
   conversationHistory: z
     .array(conversationHistoryMessageSchema)
     .max(50)
     .optional(),
   stream: z.boolean().optional().default(true),
+  provider: z.string().optional(),
+  model: z.string().optional(),
 })
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>
@@ -190,14 +204,20 @@ export interface AIUsage {
  * AI context metadata schema
  */
 export const aiContextMetadataSchema = z.object({
-  sources: z.array(z.object({
-    url: z.string().optional(),
-    title: z.string().optional(),
-    snippet: z.string().optional(),
-  })).optional(),
+  sources: z
+    .array(
+      z.object({
+        url: z.string().optional(),
+        title: z.string().optional(),
+        snippet: z.string().optional(),
+      })
+    )
+    .optional(),
   draftType: z.enum(['email', 'document', 'outline', 'general']).optional(),
   wordCount: z.number().optional(),
-  suggestionType: z.enum(['subtask', 'priority', 'deadline', 'approach']).optional(),
+  suggestionType: z
+    .enum(['subtask', 'priority', 'deadline', 'approach'])
+    .optional(),
   applied: z.boolean().optional(),
   appliedAt: z.string().optional(),
   model: z.string().optional(),
@@ -212,7 +232,14 @@ export type AIContextMetadataInput = z.infer<typeof aiContextMetadataSchema>
 export const createAIContextSchema = z.object({
   taskId: z.string().uuid(),
   conversationId: z.string().uuid().optional(),
-  type: z.enum(['research', 'draft', 'outline', 'summary', 'suggestion', 'note']),
+  type: z.enum([
+    'research',
+    'draft',
+    'outline',
+    'summary',
+    'suggestion',
+    'note',
+  ]),
   title: z.string().max(255).optional(),
   content: z.string().min(1),
   metadata: aiContextMetadataSchema.optional(),
@@ -237,7 +264,9 @@ export type UpdateAIContextRequest = z.infer<typeof updateAIContextSchema>
  */
 export const aiContextQuerySchema = z.object({
   taskId: z.string().uuid(),
-  type: z.enum(['research', 'draft', 'outline', 'summary', 'suggestion', 'note']).optional(),
+  type: z
+    .enum(['research', 'draft', 'outline', 'summary', 'suggestion', 'note'])
+    .optional(),
   currentOnly: z.coerce.boolean().optional().default(true),
 })
 
