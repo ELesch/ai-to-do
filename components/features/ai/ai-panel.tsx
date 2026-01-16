@@ -35,7 +35,7 @@ export const AIPanel: FC<AIPanelProps> = ({
       {/* Toggle button */}
       <button
         onClick={handleToggle}
-        className="fixed right-4 bottom-4 z-50 rounded-full bg-blue-600 p-3 text-white shadow-lg hover:bg-blue-700"
+        className="fixed right-4 bottom-4 z-50 rounded-full bg-blue-600 p-3 text-white shadow-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
         aria-label="Toggle AI assistant"
       >
         <svg
@@ -61,16 +61,18 @@ export const AIPanel: FC<AIPanelProps> = ({
       {/* Panel */}
       {open && (
         <aside
-          className="fixed right-0 top-0 z-40 h-full w-96 border-l bg-white shadow-xl"
+          className="border-border bg-background fixed top-0 right-0 z-40 h-full w-96 border-l shadow-xl"
           role="complementary"
           aria-label="AI Assistant panel"
         >
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b p-4">
-              <h2 className="font-semibold" id="ai-panel-title">AI Assistant</h2>
+              <h2 className="font-semibold" id="ai-panel-title">
+                AI Assistant
+              </h2>
               <button
                 onClick={handleToggle}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
                 aria-label="Close panel"
               >
                 <svg

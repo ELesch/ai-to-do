@@ -170,10 +170,7 @@ function parseFindings(findings: string): ParsedFindings {
       currentSection = 'keyFindings'
       continue
     }
-    if (
-      lowerLine.includes('detail') ||
-      lowerLine.includes('important')
-    ) {
+    if (lowerLine.includes('detail') || lowerLine.includes('important')) {
       currentSection = 'details'
       continue
     }
@@ -204,7 +201,10 @@ function parseFindings(findings: string): ParsedFindings {
       sections[currentSection].push(numberedMatch[1])
     } else if (!trimmedLine.startsWith('#')) {
       // Regular text - add to details if no section assigned
-      if (sections.keyFindings.length === 0 && currentSection === 'keyFindings') {
+      if (
+        sections.keyFindings.length === 0 &&
+        currentSection === 'keyFindings'
+      ) {
         sections.keyFindings.push(trimmedLine)
       } else {
         sections[currentSection].push(trimmedLine)
@@ -241,26 +241,30 @@ const ResearchHistoryItem: FC<{
   isDeleting: boolean
 }> = ({ research, onLoad, onDelete, isDeleting }) => {
   const title = research.title || 'Research findings'
-  const preview = research.content.slice(0, 100) + (research.content.length > 100 ? '...' : '')
+  const preview =
+    research.content.slice(0, 100) +
+    (research.content.length > 100 ? '...' : '')
   const date = new Date(research.createdAt).toLocaleDateString()
 
   return (
-    <div className="group rounded-lg border bg-white p-3 hover:shadow-sm transition-shadow">
+    <div className="group border-border bg-card rounded-lg border p-3 transition-shadow hover:shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <button
           onClick={() => onLoad(research.content)}
           className="flex-1 text-left"
         >
-          <h4 className="font-medium text-sm text-gray-900">{title}</h4>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{preview}</p>
-          <p className="text-xs text-gray-400 mt-2">
+          <h4 className="text-foreground text-sm font-medium">{title}</h4>
+          <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+            {preview}
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs">
             v{research.version} - {date}
           </p>
         </button>
         <button
           onClick={() => onDelete(research.id)}
           disabled={isDeleting}
-          className="p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+          className="text-muted-foreground p-1.5 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 disabled:opacity-50 dark:hover:text-red-400"
           title="Delete research"
         >
           {isDeleting ? <LoaderIcon /> : <TrashIcon />}
@@ -293,7 +297,7 @@ const ResearchFindings: FC<{
             <ul className="space-y-2">
               {parsed.keyFindings.map((finding, idx) => (
                 <li key={idx} className="flex gap-2 text-sm">
-                  <span className="text-blue-500 mt-0.5">-</span>
+                  <span className="mt-0.5 text-blue-500">-</span>
                   <span>{finding}</span>
                 </li>
               ))}
@@ -306,12 +310,16 @@ const ResearchFindings: FC<{
       {parsed.details.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Important Details</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Important Details
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
               {parsed.details.map((detail, idx) => (
-                <li key={idx} className="text-sm text-gray-600">{detail}</li>
+                <li key={idx} className="text-muted-foreground text-sm">
+                  {detail}
+                </li>
               ))}
             </ul>
           </CardContent>
@@ -322,12 +330,16 @@ const ResearchFindings: FC<{
       {parsed.nextSteps.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Recommended Next Steps</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Recommended Next Steps
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ol className="space-y-2 list-decimal list-inside">
+            <ol className="list-inside list-decimal space-y-2">
               {parsed.nextSteps.map((step, idx) => (
-                <li key={idx} className="text-sm">{step}</li>
+                <li key={idx} className="text-sm">
+                  {step}
+                </li>
               ))}
             </ol>
           </CardContent>
@@ -338,14 +350,16 @@ const ResearchFindings: FC<{
       {parsed.relatedTopics.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Related Topics</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Related Topics
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {parsed.relatedTopics.map((topic, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600"
+                  className="bg-muted text-muted-foreground rounded px-2 py-1 text-xs"
                 >
                   {topic}
                 </span>
@@ -364,7 +378,10 @@ const ResearchFindings: FC<{
           <CardContent>
             <ul className="space-y-1">
               {sources.map((source, idx) => (
-                <li key={idx} className="text-sm text-blue-600 hover:underline">
+                <li
+                  key={idx}
+                  className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                >
                   {source.startsWith('http') ? (
                     <a href={source} target="_blank" rel="noopener noreferrer">
                       {source}
@@ -452,7 +469,10 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
   const handleSave = useCallback(async () => {
     if (!findings) return
 
-    const result = await saveResearch(findings, `Research: ${query.slice(0, 50)}`)
+    const result = await saveResearch(
+      findings,
+      `Research: ${query.slice(0, 50)}`
+    )
     if (result) {
       setSavedFeedback('Research saved to task context!')
       setTimeout(() => setSavedFeedback(null), 3000)
@@ -482,7 +502,7 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
   return (
     <div
       className={cn(
-        'fixed right-0 top-0 z-50 h-full w-[450px] border-l bg-white shadow-xl',
+        'border-border bg-background fixed top-0 right-0 z-50 h-full w-[450px] border-l shadow-xl',
         'transform transition-transform duration-300 ease-in-out',
         isOpen ? 'translate-x-0' : 'translate-x-full'
       )}
@@ -499,14 +519,14 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
-              className={cn(showHistory && 'bg-gray-100')}
+              className={cn(showHistory && 'bg-muted')}
             >
               <HistoryIcon />
               History
             </Button>
             <button
               onClick={onClose}
-              className="p-1 text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground p-1"
               aria-label="Close panel"
             >
               <CloseIcon />
@@ -515,13 +535,13 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
         </div>
 
         {/* Task Context */}
-        <div className="border-b bg-gray-50 px-4 py-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        <div className="border-border bg-muted border-b px-4 py-3">
+          <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">
             Research Context
           </p>
-          <h3 className="font-medium text-gray-900">{task.title}</h3>
+          <h3 className="text-foreground font-medium">{task.title}</h3>
           {task.description && (
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+            <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
               {task.description}
             </p>
           )}
@@ -531,17 +551,19 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
         <div className="flex-1 overflow-y-auto">
           {showHistory ? (
             /* Research History */
-            <div className="p-4 space-y-3">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
+            <div className="space-y-3 p-4">
+              <h3 className="text-foreground mb-3 text-sm font-medium">
                 Previous Research
               </h3>
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center py-8">
                   <LoaderIcon />
-                  <span className="ml-2 text-sm text-gray-500">Loading history...</span>
+                  <span className="text-muted-foreground ml-2 text-sm">
+                    Loading history...
+                  </span>
                 </div>
               ) : researchContexts.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-8">
+                <p className="text-muted-foreground py-8 text-center text-sm">
                   No saved research for this task yet.
                 </p>
               ) : (
@@ -560,7 +582,7 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
             </div>
           ) : (
             /* Research Input and Results */
-            <div className="p-4 space-y-4">
+            <div className="space-y-4 p-4">
               {/* Search Form */}
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="flex gap-2">
@@ -586,18 +608,20 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Ask questions related to your task. The AI will provide research
-                  findings that you can save to your task context.
+                <p className="text-muted-foreground text-xs">
+                  Ask questions related to your task. The AI will provide
+                  research findings that you can save to your task context.
                 </p>
               </form>
 
               {/* Loading State */}
               {isResearching && (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
                   <LoaderIcon />
-                  <p className="text-sm text-gray-500">Researching...</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-muted-foreground text-sm">
+                    Researching...
+                  </p>
+                  <p className="text-muted-foreground text-xs">
                     This may take a few moments
                   </p>
                 </div>
@@ -605,15 +629,16 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
 
               {/* Error State */}
               {researchError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-                  <p className="text-sm text-red-600">
-                    {researchError.message || 'An error occurred during research'}
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {researchError.message ||
+                      'An error occurred during research'}
                   </p>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => research(query)}
-                    className="mt-2 text-red-600 hover:text-red-700"
+                    className="mt-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                   >
                     Try again
                   </Button>
@@ -624,8 +649,10 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
               {findings && !isResearching && (
                 <>
                   {savedFeedback && (
-                    <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-                      <p className="text-sm text-green-700">{savedFeedback}</p>
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/30">
+                      <p className="text-sm text-green-700 dark:text-green-400">
+                        {savedFeedback}
+                      </p>
                     </div>
                   )}
                   <ResearchFindings
@@ -639,14 +666,14 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
 
               {/* Empty State */}
               {!findings && !isResearching && !researchError && (
-                <div className="text-center py-12">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                <div className="py-12 text-center">
+                  <div className="bg-muted mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full">
                     <SearchIcon />
                   </div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-1">
+                  <h3 className="text-foreground mb-1 text-sm font-medium">
                     Research your task
                   </h3>
-                  <p className="text-xs text-gray-500 max-w-[250px] mx-auto">
+                  <p className="text-muted-foreground mx-auto max-w-[250px] text-xs">
                     Enter a question above to get AI-powered research findings
                     related to your task.
                   </p>
@@ -657,14 +684,15 @@ export const ResearchPanel: FC<ResearchPanelProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t px-4 py-3 bg-gray-50">
-          <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="border-border bg-muted border-t px-4 py-3">
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
             <span>
-              {researchContexts.length} saved research{researchContexts.length !== 1 ? 'es' : ''}
+              {researchContexts.length} saved research
+              {researchContexts.length !== 1 ? 'es' : ''}
             </span>
             <button
               onClick={() => refreshContexts()}
-              className="hover:text-gray-700"
+              className="hover:text-foreground"
             >
               Refresh
             </button>

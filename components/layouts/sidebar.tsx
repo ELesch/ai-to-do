@@ -68,14 +68,14 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <aside
-      className="flex h-full w-64 flex-col border-r bg-gray-50"
+      className="border-border bg-muted flex h-full w-64 flex-col border-r"
       role="complementary"
       aria-label="Sidebar navigation"
     >
       <div className="flex-1 p-4">
         {/* Logo */}
         <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500">
             <span className="font-bold text-white">AI</span>
           </div>
           <span className="text-lg font-semibold">AI Todo</span>
@@ -115,8 +115,8 @@ export const Sidebar: FC<SidebarProps> = ({
                 href={item.href}
                 className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 transition-colors ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 <span className="text-sm">{item.label}</span>
@@ -124,8 +124,8 @@ export const Sidebar: FC<SidebarProps> = ({
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       isActive
-                        ? 'bg-blue-200 text-blue-800'
-                        : 'bg-gray-200 text-gray-600'
+                        ? 'bg-blue-200 text-blue-800 dark:bg-blue-800/40 dark:text-blue-200'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {count}
@@ -138,17 +138,19 @@ export const Sidebar: FC<SidebarProps> = ({
 
         {/* Projects section */}
         <div className="mt-8">
-          <h3 className="px-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+          <h3 className="text-muted-foreground px-3 text-xs font-semibold tracking-wider uppercase">
             Projects
           </h3>
-          <div className="mt-2 px-3 text-sm text-gray-500">No projects yet</div>
+          <div className="text-muted-foreground mt-2 px-3 text-sm">
+            No projects yet
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="border-t p-4">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="h-6 w-6 rounded-full bg-gray-300" />
+      <div className="border-border border-t p-4">
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <div className="bg-muted h-6 w-6 rounded-full" />
           <span className="flex-1 truncate">User</span>
         </div>
       </div>

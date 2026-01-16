@@ -32,17 +32,17 @@ export const RichTextEditor: FC<RichTextEditorProps> = ({
   return (
     <div className="rounded-lg border">
       {!readOnly && (
-        <div className="flex items-center gap-1 border-b p-2 bg-gray-50">
-          <button className="p-1.5 rounded hover:bg-gray-200" title="Bold">
-            <span className="font-bold text-sm">B</span>
+        <div className="bg-muted flex items-center gap-1 border-b p-2">
+          <button className="hover:bg-muted/80 rounded p-1.5" title="Bold">
+            <span className="text-sm font-bold">B</span>
           </button>
-          <button className="p-1.5 rounded hover:bg-gray-200" title="Italic">
-            <span className="italic text-sm">I</span>
+          <button className="hover:bg-muted/80 rounded p-1.5" title="Italic">
+            <span className="text-sm italic">I</span>
           </button>
-          <button className="p-1.5 rounded hover:bg-gray-200" title="List">
+          <button className="hover:bg-muted/80 rounded p-1.5" title="List">
             <span className="text-sm">-</span>
           </button>
-          <button className="p-1.5 rounded hover:bg-gray-200" title="Checklist">
+          <button className="hover:bg-muted/80 rounded p-1.5" title="Checklist">
             <span className="text-sm">[]</span>
           </button>
         </div>
@@ -52,9 +52,9 @@ export const RichTextEditor: FC<RichTextEditorProps> = ({
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
         readOnly={readOnly}
-        className="w-full min-h-[120px] p-3 resize-none focus:outline-none"
+        className="min-h-[120px] w-full resize-none p-3 focus:outline-none"
       />
-      <p className="text-xs text-gray-400 p-2 border-t">
+      <p className="text-muted-foreground border-t p-2 text-xs">
         Rich text editor (Tiptap) coming soon
       </p>
     </div>

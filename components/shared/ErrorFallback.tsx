@@ -66,10 +66,14 @@ const ErrorIcon: FC<{ className?: string }> = ({ className }) => (
 /**
  * Default error messages by variant
  */
-const defaultMessages: Record<ErrorFallbackVariant, { title: string; message: string }> = {
+const defaultMessages: Record<
+  ErrorFallbackVariant,
+  { title: string; message: string }
+> = {
   page: {
     title: 'Something went wrong',
-    message: 'We encountered an unexpected error. Please try again or contact support if the problem persists.',
+    message:
+      'We encountered an unexpected error. Please try again or contact support if the problem persists.',
   },
   section: {
     title: 'Failed to load',
@@ -112,21 +116,19 @@ export const ErrorFallback: FC<ErrorFallbackProps> = ({
         role="alert"
         aria-live="assertive"
       >
-        <div className="text-center max-w-md">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-            <ErrorIcon className="h-8 w-8 text-red-600" />
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <ErrorIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
 
-          <h1 className="mb-2 text-2xl font-semibold text-gray-900">
+          <h1 className="text-foreground mb-2 text-2xl font-semibold">
             {displayTitle}
           </h1>
 
-          <p className="mb-8 text-gray-600">
-            {displayMessage}
-          </p>
+          <p className="text-muted-foreground mb-8">{displayMessage}</p>
 
           {errorCode && (
-            <p className="mb-4 text-sm text-gray-400">
+            <p className="text-muted-foreground mb-4 text-sm">
               Error code: {errorCode}
             </p>
           )}
@@ -134,11 +136,7 @@ export const ErrorFallback: FC<ErrorFallbackProps> = ({
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             {actions || (
               <>
-                {onRetry && (
-                  <Button onClick={onRetry}>
-                    Try again
-                  </Button>
-                )}
+                {onRetry && <Button onClick={onRetry}>Try again</Button>}
                 {showReport && onReport && (
                   <Button variant="outline" onClick={onReport}>
                     Report issue
@@ -157,26 +155,26 @@ export const ErrorFallback: FC<ErrorFallbackProps> = ({
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 p-8',
+          'flex flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 p-8 dark:border-red-800 dark:bg-red-950/30',
           className
         )}
         role="alert"
         aria-live="assertive"
       >
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <ErrorIcon className="h-6 w-6 text-red-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <ErrorIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
 
-          <h2 className="mb-2 text-lg font-medium text-gray-900">
+          <h2 className="text-foreground mb-2 text-lg font-medium">
             {displayTitle}
           </h2>
 
-          <p className="mb-6 text-sm text-gray-600 max-w-sm">
+          <p className="text-muted-foreground mb-6 max-w-sm text-sm">
             {displayMessage}
           </p>
 
-          <div className="flex gap-3 justify-center">
+          <div className="flex justify-center gap-3">
             {actions || (
               <>
                 {onRetry && (
@@ -201,30 +199,29 @@ export const ErrorFallback: FC<ErrorFallbackProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3',
+        'flex items-center gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/30',
         className
       )}
       role="alert"
       aria-live="assertive"
     >
-      <ErrorIcon className="h-5 w-5 flex-shrink-0 text-red-600" />
+      <ErrorIcon className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" />
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-red-800">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-red-800 dark:text-red-300">
           {displayTitle}
         </p>
-        <p className="text-sm text-red-600 truncate">
+        <p className="truncate text-sm text-red-600 dark:text-red-400">
           {displayMessage}
         </p>
       </div>
 
-      {actions || (
-        onRetry && (
+      {actions ||
+        (onRetry && (
           <Button size="sm" variant="ghost" onClick={onRetry}>
             Retry
           </Button>
-        )
-      )}
+        ))}
     </div>
   )
 }
@@ -236,7 +233,10 @@ export const InlineError: FC<{
   message: string
   className?: string
 }> = ({ message, className }) => (
-  <p className={cn('text-sm text-red-600', className)} role="alert">
+  <p
+    className={cn('text-sm text-red-600 dark:text-red-400', className)}
+    role="alert"
+  >
     {message}
   </p>
 )
@@ -248,7 +248,13 @@ export const ErrorMessage: FC<{
   message: string
   className?: string
 }> = ({ message, className }) => (
-  <div className={cn('flex items-center gap-2 text-red-600', className)} role="alert">
+  <div
+    className={cn(
+      'flex items-center gap-2 text-red-600 dark:text-red-400',
+      className
+    )}
+    role="alert"
+  >
     <ErrorIcon className="h-4 w-4 flex-shrink-0" />
     <span className="text-sm">{message}</span>
   </div>

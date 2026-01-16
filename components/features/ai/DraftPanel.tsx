@@ -62,17 +62,13 @@ interface DraftPanelProps {
 /**
  * DraftPanel - Sliding panel for AI-assisted drafting
  */
-export const DraftPanel: FC<DraftPanelProps> = ({
-  task,
-  isOpen,
-  onClose,
-}) => {
+export const DraftPanel: FC<DraftPanelProps> = ({ task, isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
     <div
       className={cn(
-        'fixed right-0 top-0 z-50 h-full w-[550px] border-l bg-white shadow-xl',
+        'border-border bg-background fixed top-0 right-0 z-50 h-full w-[550px] border-l shadow-xl',
         'transform transition-transform duration-300 ease-in-out',
         isOpen ? 'translate-x-0' : 'translate-x-full'
       )}
@@ -86,7 +82,7 @@ export const DraftPanel: FC<DraftPanelProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground p-1"
             aria-label="Close panel"
           >
             <CloseIcon />
@@ -94,13 +90,13 @@ export const DraftPanel: FC<DraftPanelProps> = ({
         </div>
 
         {/* Task Context */}
-        <div className="border-b bg-gray-50 px-4 py-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        <div className="border-border bg-muted border-b px-4 py-3">
+          <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">
             Drafting For
           </p>
-          <h3 className="font-medium text-gray-900">{task.title}</h3>
+          <h3 className="text-foreground font-medium">{task.title}</h3>
           {task.description && (
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+            <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
               {task.description}
             </p>
           )}
@@ -117,8 +113,8 @@ export const DraftPanel: FC<DraftPanelProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t px-4 py-3 bg-gray-50">
-          <div className="text-xs text-gray-500">
+        <div className="border-border bg-muted border-t px-4 py-3">
+          <div className="text-muted-foreground text-xs">
             <p>
               Use the toolbar to format text or generate AI-assisted content.
               Your drafts are automatically saved.

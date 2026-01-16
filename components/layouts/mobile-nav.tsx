@@ -112,7 +112,7 @@ export const MobileNav: FC<MobileNavProps> = ({
         <SheetHeader className="border-b p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500">
                 <span className="text-sm font-bold text-white">AI</span>
               </div>
               <SheetTitle className="text-lg">AI Todo</SheetTitle>

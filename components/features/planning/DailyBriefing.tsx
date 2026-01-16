@@ -220,16 +220,16 @@ const CollapsibleSection: FC<CollapsibleSectionProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between py-3 text-left hover:bg-gray-50 transition-colors"
+        className="hover:bg-muted flex w-full items-center justify-between py-3 text-left transition-colors"
       >
         <div className="flex items-center gap-2">
           {icon}
-          <span className="font-medium text-sm">{title}</span>
+          <span className="text-sm font-medium">{title}</span>
           {badge}
         </div>
         <ChevronDownIcon
           className={cn(
-            'h-4 w-4 text-gray-500 transition-transform duration-200',
+            'text-muted-foreground h-4 w-4 transition-transform duration-200',
             isOpen && 'rotate-180'
           )}
         />
@@ -246,22 +246,23 @@ interface TaskItemProps {
 
 const TaskItem: FC<TaskItemProps> = ({ task, onClick }) => {
   const priorityColors = {
-    high: 'bg-red-100 text-red-700 border-red-200',
-    medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    low: 'bg-blue-100 text-blue-700 border-blue-200',
-    none: 'bg-gray-100 text-gray-700 border-gray-200',
+    high: 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+    medium:
+      'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+    low: 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    none: 'bg-muted text-foreground border-border',
   }
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors"
     >
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{task.title}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{task.title}</p>
         {task.dueDate && (
-          <p className="text-xs text-gray-500">
+          <p className="text-muted-foreground text-xs">
             Due: {new Date(task.dueDate).toLocaleDateString()}
           </p>
         )}
@@ -282,9 +283,12 @@ interface WorkloadBadgeProps {
 
 const WorkloadBadge: FC<WorkloadBadgeProps> = ({ assessment }) => {
   const styles = {
-    light: 'bg-green-100 text-green-700 border-green-200',
-    moderate: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    heavy: 'bg-red-100 text-red-700 border-red-200',
+    light:
+      'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+    moderate:
+      'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+    heavy:
+      'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
   }
 
   return (
@@ -302,22 +306,22 @@ const ActivityStats: FC<ActivityStatsProps> = ({ activity }) => {
   return (
     <div className="grid grid-cols-3 gap-4">
       <div className="text-center">
-        <p className="text-2xl font-bold text-green-600">
+        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
           {activity.completedToday}
         </p>
-        <p className="text-xs text-gray-500">Completed Today</p>
+        <p className="text-muted-foreground text-xs">Completed Today</p>
       </div>
       <div className="text-center">
-        <p className="text-2xl font-bold text-blue-600">
+        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
           {activity.completedThisWeek}
         </p>
-        <p className="text-xs text-gray-500">This Week</p>
+        <p className="text-muted-foreground text-xs">This Week</p>
       </div>
       <div className="text-center">
-        <p className="text-2xl font-bold text-purple-600">
+        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
           {activity.createdToday}
         </p>
-        <p className="text-xs text-gray-500">Created Today</p>
+        <p className="text-muted-foreground text-xs">Created Today</p>
       </div>
     </div>
   )
@@ -341,9 +345,9 @@ const BriefingLoadingState: FC = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
-          <div className="h-24 bg-gray-100 rounded-lg animate-pulse" />
-          <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="bg-muted h-16 animate-pulse rounded-lg" />
+          <div className="bg-muted h-24 animate-pulse rounded-lg" />
+          <div className="bg-muted h-16 animate-pulse rounded-lg" />
         </div>
       </CardContent>
     </Card>
@@ -359,17 +363,20 @@ interface BriefingErrorStateProps {
   onRetry: () => void
 }
 
-const BriefingErrorState: FC<BriefingErrorStateProps> = ({ error, onRetry }) => {
+const BriefingErrorState: FC<BriefingErrorStateProps> = ({
+  error,
+  onRetry,
+}) => {
   return (
-    <Card className="border-red-200 bg-red-50">
+    <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30">
       <CardHeader>
         <div className="flex items-center gap-2">
           <AlertTriangleIcon className="h-5 w-5 text-red-500" />
-          <CardTitle className="text-lg text-red-700">
+          <CardTitle className="text-lg text-red-700 dark:text-red-400">
             Failed to Load Briefing
           </CardTitle>
         </div>
-        <CardDescription className="text-red-600">
+        <CardDescription className="text-red-600 dark:text-red-400">
           {error.message}
         </CardDescription>
       </CardHeader>
@@ -422,15 +429,20 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
     return null
   }
 
-  const { tasksDueToday, overdueTasks, suggestedTasks, recentActivity, aiInsights } =
-    briefing
+  const {
+    tasksDueToday,
+    overdueTasks,
+    suggestedTasks,
+    recentActivity,
+    aiInsights,
+  } = briefing
 
   return (
-    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+    <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 dark:border-blue-800 dark:from-blue-950/30 dark:to-indigo-950/30">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <SparklesIcon className="h-5 w-5 text-blue-600" />
+            <SparklesIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <CardTitle className="text-lg">Daily Briefing</CardTitle>
             <WorkloadBadge assessment={aiInsights.workloadAssessment} />
           </div>
@@ -449,7 +461,7 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
         <CardDescription>
           {aiInsights.workloadExplanation}
           {isCached && lastUpdated && (
-            <span className="text-xs text-gray-400 ml-2">
+            <span className="text-muted-foreground ml-2 text-xs">
               (cached from {lastUpdated.toLocaleTimeString()})
             </span>
           )}
@@ -459,8 +471,10 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
       <CardContent className="pt-2">
         {/* Motivational Note */}
         {aiInsights.motivationalNote && (
-          <div className="mb-4 p-3 bg-white/60 rounded-lg border border-blue-100">
-            <p className="text-sm text-blue-700">{aiInsights.motivationalNote}</p>
+          <div className="dark:bg-background/60 mb-4 rounded-lg border border-blue-100 bg-white/60 p-3 dark:border-blue-800">
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              {aiInsights.motivationalNote}
+            </p>
           </div>
         )}
 
@@ -513,7 +527,7 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-2">
+              <p className="text-muted-foreground py-2 text-sm">
                 No tasks due today. Great job staying ahead!
               </p>
             )}
@@ -548,16 +562,18 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
               {/* Priority Recommendations */}
               {aiInsights.priorityRecommendations.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-2">
+                  <p className="text-muted-foreground mb-2 text-xs font-medium">
                     Priority Recommendations
                   </p>
                   <ul className="space-y-1">
                     {aiInsights.priorityRecommendations.map((rec, index) => (
                       <li
                         key={index}
-                        className="text-sm text-gray-700 flex items-start gap-2"
+                        className="text-foreground flex items-start gap-2 text-sm"
                       >
-                        <span className="text-blue-500 mt-1">-</span>
+                        <span className="mt-1 text-blue-500 dark:text-blue-400">
+                          -
+                        </span>
                         {rec}
                       </li>
                     ))}
@@ -568,16 +584,18 @@ export const DailyBriefing: FC<DailyBriefingProps> = () => {
               {/* Time Blocking Suggestions */}
               {aiInsights.timeBlockingSuggestions.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-2">
+                  <p className="text-muted-foreground mb-2 text-xs font-medium">
                     Time Blocking Tips
                   </p>
                   <ul className="space-y-1">
                     {aiInsights.timeBlockingSuggestions.map((sug, index) => (
                       <li
                         key={index}
-                        className="text-sm text-gray-700 flex items-start gap-2"
+                        className="text-foreground flex items-start gap-2 text-sm"
                       >
-                        <span className="text-purple-500 mt-1">-</span>
+                        <span className="mt-1 text-purple-500 dark:text-purple-400">
+                          -
+                        </span>
                         {sug}
                       </li>
                     ))}

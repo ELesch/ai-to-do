@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/tooltip'
 import { ShortcutHint } from '@/components/shared/keyboard-shortcuts-dialog'
 import { CommandPalette } from '@/components/shared/command-palette'
+import { ThemeToggleCompact } from '@/components/ui/theme-toggle'
 import { useOptionalKeyboardContext } from '@/providers/keyboard-provider'
 import { cn } from '@/lib/utils'
 
@@ -61,7 +62,7 @@ export const Header: FC<HeaderProps> = ({
     <TooltipProvider>
       <header
         className={cn(
-          'h-14 border-b bg-white px-4 flex items-center justify-between',
+          'border-border bg-background flex h-14 items-center justify-between border-b px-4',
           className
         )}
       >
@@ -92,12 +93,12 @@ export const Header: FC<HeaderProps> = ({
               <button
                 onClick={handleSearchClick}
                 onKeyDown={handleSearchKeyDown}
-                className="relative flex items-center gap-2 w-64 rounded-lg border pl-3 pr-12 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground/30 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                className="text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground/30 focus:ring-ring relative flex w-64 items-center gap-2 rounded-lg border py-1.5 pr-12 pl-3 text-left text-sm transition-colors focus:ring-2 focus:outline-none"
                 aria-label="Search tasks and projects"
               >
                 <Search className="h-4 w-4" />
                 <span>Search...</span>
-                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 rounded border bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                <kbd className="bg-muted/50 text-muted-foreground absolute top-1/2 right-2 hidden -translate-y-1/2 items-center gap-0.5 rounded border px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex">
                   <ShortcutHint shortcutId="open-command-palette" />
                 </kbd>
               </button>
@@ -127,7 +128,7 @@ export const Header: FC<HeaderProps> = ({
             <TooltipContent side="bottom">
               <div className="flex items-center gap-2">
                 <span>Keyboard shortcuts</span>
-                <kbd className="text-[10px] font-mono bg-muted/50 px-1 py-0.5 rounded border">
+                <kbd className="bg-muted/50 rounded border px-1 py-0.5 font-mono text-[10px]">
                   ?
                 </kbd>
               </div>
@@ -154,6 +155,16 @@ export const Header: FC<HeaderProps> = ({
             </TooltipContent>
           </Tooltip>
 
+          {/* Theme toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ThemeToggleCompact />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <span>Toggle theme</span>
+            </TooltipContent>
+          </Tooltip>
+
           {/* User menu placeholder */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -163,8 +174,8 @@ export const Header: FC<HeaderProps> = ({
                 className="ml-2"
                 aria-label="User menu"
               >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User className="h-4 w-4 text-gray-600" />
+                <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-full">
+                  <User className="text-muted-foreground h-4 w-4" />
                 </div>
               </Button>
             </TooltipTrigger>

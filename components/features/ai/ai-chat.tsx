@@ -52,13 +52,13 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
       {/* Header with clear button */}
       {messages.length > 0 && (
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-muted-foreground text-xs">
             {messages.length} message{messages.length !== 1 ? 's' : ''}
           </span>
           <button
             type="button"
             onClick={clearMessages}
-            className="text-xs text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground text-xs"
           >
             Clear chat
           </button>
@@ -68,10 +68,10 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
       {/* Messages */}
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
         {messages.length === 0 ? (
-          <div className="py-4 text-center text-sm text-gray-500">
+          <div className="text-muted-foreground py-4 text-center text-sm">
             <p>How can I help you with this task?</p>
             {taskTitle && (
-              <p className="mt-2 text-xs text-gray-400 italic">
+              <p className="text-muted-foreground mt-2 text-xs italic">
                 Context: {taskTitle}
               </p>
             )}
@@ -84,9 +84,9 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
 
         {/* Error display */}
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
             <p className="font-medium">Error</p>
-            <p className="text-red-600">{error.message}</p>
+            <p className="text-red-600 dark:text-red-400">{error.message}</p>
           </div>
         )}
 
@@ -99,7 +99,7 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
           <button
             type="button"
             onClick={stopStreaming}
-            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+            className="border-border text-muted-foreground hover:bg-muted w-full rounded-lg border px-3 py-1.5 text-sm"
           >
             Stop generating
           </button>
@@ -128,7 +128,7 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
             aria-label="Send message"
           >
             {isLoading && !isStreaming ? (
@@ -153,18 +153,20 @@ const MessageBubble: FC<{ message: Message }> = ({ message }) => {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] rounded-lg px-3 py-2 ${
-          isUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
+          isUser
+            ? 'bg-blue-600 text-white dark:bg-blue-500'
+            : 'bg-muted text-foreground'
         }`}
       >
         {isUser ? (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-pre:bg-gray-800 prose-pre:text-gray-100 max-w-none">
+          <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-pre:bg-gray-800 dark:prose-pre:bg-gray-900 prose-pre:text-gray-100 max-w-none">
             <ReactMarkdown>{message.content || '...'}</ReactMarkdown>
           </div>
         )}
         {message.isStreaming && (
-          <span className="ml-1 inline-block h-2 w-2 animate-pulse rounded-full bg-gray-400" />
+          <span className="bg-muted-foreground ml-1 inline-block h-2 w-2 animate-pulse rounded-full" />
         )}
       </div>
     </div>

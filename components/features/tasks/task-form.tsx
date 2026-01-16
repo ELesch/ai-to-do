@@ -37,7 +37,11 @@ import {
 /**
  * Reminder preset type
  */
-type ReminderPreset = 'tomorrow_morning' | 'one_hour_before' | 'one_day_before' | 'custom'
+type ReminderPreset =
+  | 'tomorrow_morning'
+  | 'one_hour_before'
+  | 'one_day_before'
+  | 'custom'
 
 /**
  * Reminder data for the form
@@ -59,10 +63,21 @@ const taskFormSchema = z.object({
   dueDate: z.date().nullable().optional(),
   dueDateHasTime: z.boolean().optional(),
   projectId: z.string().uuid().nullable().optional(),
-  reminders: z.array(z.object({
-    preset: z.enum(['tomorrow_morning', 'one_hour_before', 'one_day_before', 'custom']).optional(),
-    remindAt: z.date(),
-  })).optional(),
+  reminders: z
+    .array(
+      z.object({
+        preset: z
+          .enum([
+            'tomorrow_morning',
+            'one_hour_before',
+            'one_day_before',
+            'custom',
+          ])
+          .optional(),
+        remindAt: z.date(),
+      })
+    )
+    .optional(),
 })
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>
@@ -109,10 +124,10 @@ function FormLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+      className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
     >
       {children}
-      {required && <span className="text-red-500 ml-1">*</span>}
+      {required && <span className="ml-1 text-red-500">*</span>}
     </label>
   )
 }
@@ -122,18 +137,19 @@ function FormLabel({
  */
 function FormError({ message }: { message?: string }) {
   if (!message) return null
-  return <p className="text-sm text-red-500 mt-1">{message}</p>
+  return <p className="mt-1 text-sm text-red-500">{message}</p>
 }
 
 /**
  * Priority options with colors
  */
-const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: 'none', label: 'No priority', color: 'text-muted-foreground' },
-  { value: 'low', label: 'Low', color: 'text-blue-600' },
-  { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
-  { value: 'high', label: 'High', color: 'text-red-600' },
-]
+const priorityOptions: { value: TaskPriority; label: string; color: string }[] =
+  [
+    { value: 'none', label: 'No priority', color: 'text-muted-foreground' },
+    { value: 'low', label: 'Low', color: 'text-blue-600' },
+    { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
+    { value: 'high', label: 'High', color: 'text-red-600' },
+  ]
 
 /**
  * Reminder preset options
@@ -148,13 +164,15 @@ const REMINDER_PRESETS = [
     id: 'one_hour_before' as ReminderPreset,
     label: '1 hour before due',
     requiresDueDate: true,
-    getTime: (dueDate?: Date | null) => dueDate ? addHours(dueDate, -1) : addHours(new Date(), 1),
+    getTime: (dueDate?: Date | null) =>
+      dueDate ? addHours(dueDate, -1) : addHours(new Date(), 1),
   },
   {
     id: 'one_day_before' as ReminderPreset,
     label: '1 day before due',
     requiresDueDate: true,
-    getTime: (dueDate?: Date | null) => dueDate ? addDays(dueDate, -1) : startOfTomorrow(),
+    getTime: (dueDate?: Date | null) =>
+      dueDate ? addDays(dueDate, -1) : startOfTomorrow(),
   },
 ] as const
 
@@ -178,7 +196,9 @@ export const TaskForm: FC<TaskFormProps> = ({
 }) => {
   const [remindersList, setRemindersList] = useState<ReminderData[]>([])
   const [showReminderOptions, setShowReminderOptions] = useState(false)
-  const [customReminderDate, setCustomReminderDate] = useState<Date | null>(null)
+  const [customReminderDate, setCustomReminderDate] = useState<Date | null>(
+    null
+  )
 
   const {
     register,
@@ -205,25 +225,34 @@ export const TaskForm: FC<TaskFormProps> = ({
   const selectedProjectId = watch('projectId')
 
   // Add a reminder from preset
-  const handleAddReminderPreset = useCallback((preset: typeof REMINDER_PRESETS[number]) => {
-    const remindAt = preset.getTime(selectedDueDate)
+  const handleAddReminderPreset = useCallback(
+    (preset: (typeof REMINDER_PRESETS)[number]) => {
+      const remindAt = preset.getTime(selectedDueDate)
 
-    // Don't add if time is in the past
-    if (isBefore(remindAt, new Date())) {
-      return
-    }
+      // Don't add if time is in the past
+      if (isBefore(remindAt, new Date())) {
+        return
+      }
 
-    const newReminder: ReminderData = {
-      id: generateReminderId(),
-      preset: preset.id,
-      remindAt,
-      label: preset.label,
-    }
+      const newReminder: ReminderData = {
+        id: generateReminderId(),
+        preset: preset.id,
+        remindAt,
+        label: preset.label,
+      }
 
-    setRemindersList((prev) => [...prev, newReminder])
-    setValue('reminders', [...(remindersList.map(r => ({ preset: r.preset, remindAt: r.remindAt }))), { preset: preset.id, remindAt }])
-    setShowReminderOptions(false)
-  }, [selectedDueDate, remindersList, setValue])
+      setRemindersList((prev) => [...prev, newReminder])
+      setValue('reminders', [
+        ...remindersList.map((r) => ({
+          preset: r.preset,
+          remindAt: r.remindAt,
+        })),
+        { preset: preset.id, remindAt },
+      ])
+      setShowReminderOptions(false)
+    },
+    [selectedDueDate, remindersList, setValue]
+  )
 
   // Add a custom reminder
   const handleAddCustomReminder = useCallback(() => {
@@ -239,23 +268,35 @@ export const TaskForm: FC<TaskFormProps> = ({
     }
 
     setRemindersList((prev) => [...prev, newReminder])
-    setValue('reminders', [...(remindersList.map(r => ({ preset: r.preset, remindAt: r.remindAt }))), { preset: 'custom', remindAt: customReminderDate }])
+    setValue('reminders', [
+      ...remindersList.map((r) => ({ preset: r.preset, remindAt: r.remindAt })),
+      { preset: 'custom', remindAt: customReminderDate },
+    ])
     setCustomReminderDate(null)
     setShowReminderOptions(false)
   }, [customReminderDate, remindersList, setValue])
 
   // Remove a reminder
-  const handleRemoveReminder = useCallback((id: string) => {
-    const updated = remindersList.filter((r) => r.id !== id)
-    setRemindersList(updated)
-    setValue('reminders', updated.map(r => ({ preset: r.preset, remindAt: r.remindAt })))
-  }, [remindersList, setValue])
+  const handleRemoveReminder = useCallback(
+    (id: string) => {
+      const updated = remindersList.filter((r) => r.id !== id)
+      setRemindersList(updated)
+      setValue(
+        'reminders',
+        updated.map((r) => ({ preset: r.preset, remindAt: r.remindAt }))
+      )
+    },
+    [remindersList, setValue]
+  )
 
   const handleFormSubmit = handleSubmit(async (values: TaskFormValues) => {
     // Include reminders in submission
     const formValues: TaskFormValues = {
       ...values,
-      reminders: remindersList.map(r => ({ preset: r.preset, remindAt: r.remindAt })),
+      reminders: remindersList.map((r) => ({
+        preset: r.preset,
+        remindAt: r.remindAt,
+      })),
     }
     await onSubmit(formValues)
   })
@@ -291,13 +332,15 @@ export const TaskForm: FC<TaskFormProps> = ({
       </div>
 
       {/* Priority and Due Date row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Priority select */}
         <div className="space-y-2">
           <FormLabel htmlFor="priority">Priority</FormLabel>
           <Select
             value={selectedPriority}
-            onValueChange={(value) => setValue('priority', value as TaskPriority)}
+            onValueChange={(value) =>
+              setValue('priority', value as TaskPriority)
+            }
           >
             <SelectTrigger id="priority">
               <SelectValue placeholder="Select priority" />
@@ -334,7 +377,9 @@ export const TaskForm: FC<TaskFormProps> = ({
           disabled={projectsLoading}
         >
           <SelectTrigger id="projectId">
-            <SelectValue placeholder={projectsLoading ? 'Loading...' : 'Select project'} />
+            <SelectValue
+              placeholder={projectsLoading ? 'Loading...' : 'Select project'}
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="no-project">
@@ -344,7 +389,7 @@ export const TaskForm: FC<TaskFormProps> = ({
               <SelectItem key={project.id} value={project.id}>
                 <div className="flex items-center gap-2">
                   <span
-                    className="h-3 w-3 rounded-full shrink-0"
+                    className="h-3 w-3 shrink-0 rounded-full"
                     style={{ backgroundColor: project.color }}
                   />
                   <span>{project.name}</span>
@@ -367,7 +412,7 @@ export const TaskForm: FC<TaskFormProps> = ({
               onClick={() => setShowReminderOptions(!showReminderOptions)}
               className="text-muted-foreground hover:text-foreground"
             >
-              <BellPlus className="h-4 w-4 mr-1" />
+              <BellPlus className="mr-1 h-4 w-4" />
               Add
             </Button>
           </div>
@@ -378,21 +423,21 @@ export const TaskForm: FC<TaskFormProps> = ({
               {remindersList.map((reminder) => (
                 <div
                   key={reminder.id}
-                  className="flex items-center justify-between gap-2 px-3 py-2 bg-blue-50 rounded-lg"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-900/30"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Bell className="h-4 w-4 text-blue-600 shrink-0" />
-                    <span className="text-sm text-blue-800 truncate">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Bell className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span className="truncate text-sm text-blue-800 dark:text-blue-200">
                       {reminder.label}
                     </span>
-                    <span className="text-xs text-blue-600">
+                    <span className="text-xs text-blue-600 dark:text-blue-400">
                       {format(reminder.remindAt, 'MMM d, h:mm a')}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveReminder(reminder.id)}
-                    className="text-blue-400 hover:text-red-500 shrink-0"
+                    className="shrink-0 text-blue-400 hover:text-red-500 dark:text-blue-400 dark:hover:text-red-400"
                     aria-label={`Remove reminder: ${reminder.label}`}
                   >
                     <X className="h-4 w-4" />
@@ -404,11 +449,16 @@ export const TaskForm: FC<TaskFormProps> = ({
 
           {/* Reminder options panel */}
           {showReminderOptions && (
-            <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-              <p className="text-sm font-medium text-muted-foreground">Quick options:</p>
+            <div className="bg-muted space-y-3 rounded-lg border p-3">
+              <p className="text-muted-foreground text-sm font-medium">
+                Quick options:
+              </p>
               <div className="flex flex-wrap gap-2">
                 {REMINDER_PRESETS.map((preset) => {
-                  const isDisabled = 'requiresDueDate' in preset && preset.requiresDueDate && !selectedDueDate
+                  const isDisabled =
+                    'requiresDueDate' in preset &&
+                    preset.requiresDueDate &&
+                    !selectedDueDate
                   const reminderTime = preset.getTime(selectedDueDate)
                   const isPast = isBefore(reminderTime, new Date())
 
@@ -416,13 +466,17 @@ export const TaskForm: FC<TaskFormProps> = ({
                     <button
                       key={preset.id}
                       type="button"
-                      onClick={() => !isDisabled && !isPast && handleAddReminderPreset(preset)}
+                      onClick={() =>
+                        !isDisabled &&
+                        !isPast &&
+                        handleAddReminderPreset(preset)
+                      }
                       disabled={isDisabled || isPast}
                       className={cn(
-                        'flex items-center gap-1 px-3 py-1.5 text-sm rounded-md transition-colors',
+                        'flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors',
                         isDisabled || isPast
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white border hover:bg-blue-50 hover:border-blue-300'
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'bg-background border-border border hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-900/30'
                       )}
                     >
                       <Clock className="h-3 w-3" />
@@ -433,8 +487,10 @@ export const TaskForm: FC<TaskFormProps> = ({
               </div>
 
               {/* Custom date/time picker */}
-              <div className="border-t pt-3 mt-3">
-                <p className="text-sm font-medium text-muted-foreground mb-2">Custom time:</p>
+              <div className="mt-3 border-t pt-3">
+                <p className="text-muted-foreground mb-2 text-sm font-medium">
+                  Custom time:
+                </p>
                 <div className="flex gap-2">
                   <DateTimePicker
                     value={customReminderDate}
@@ -449,7 +505,10 @@ export const TaskForm: FC<TaskFormProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={handleAddCustomReminder}
-                    disabled={!customReminderDate || isBefore(customReminderDate, new Date())}
+                    disabled={
+                      !customReminderDate ||
+                      isBefore(customReminderDate, new Date())
+                    }
                   >
                     Add
                   </Button>
@@ -459,7 +518,7 @@ export const TaskForm: FC<TaskFormProps> = ({
           )}
 
           {remindersList.length === 0 && !showReminderOptions && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               No reminders set. Click &quot;Add&quot; to create one.
             </p>
           )}
@@ -469,7 +528,12 @@ export const TaskForm: FC<TaskFormProps> = ({
       {/* Form actions */}
       <div className="flex items-center justify-end gap-3 pt-4">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         )}

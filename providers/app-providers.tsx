@@ -8,6 +8,7 @@
 import { type FC, type ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { KeyboardProvider } from './keyboard-provider'
+import { ThemeProvider } from './theme-provider'
 
 interface AppProvidersProps {
   children: ReactNode
@@ -18,8 +19,10 @@ interface AppProvidersProps {
  */
 export const AppProviders: FC<AppProvidersProps> = ({ children }) => {
   return (
-    <SessionProvider>
-      <KeyboardProvider>{children}</KeyboardProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      <SessionProvider>
+        <KeyboardProvider>{children}</KeyboardProvider>
+      </SessionProvider>
+    </ThemeProvider>
   )
 }

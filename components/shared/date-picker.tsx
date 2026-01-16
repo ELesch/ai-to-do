@@ -45,7 +45,7 @@ export const DatePicker: FC<DatePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+        className="hover:bg-muted flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -63,13 +63,13 @@ export const DatePicker: FC<DatePickerProps> = ({
           <line x1="8" x2="8" y1="2" y2="6" />
           <line x1="3" x2="21" y1="10" y2="10" />
         </svg>
-        <span className={value ? 'text-gray-900' : 'text-gray-500'}>
+        <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
           {value ? value.toLocaleDateString() : placeholder}
         </span>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-10 mt-1 w-64 rounded-lg border bg-white p-2 shadow-lg">
+        <div className="bg-background absolute top-full left-0 z-10 mt-1 w-64 rounded-lg border p-2 shadow-lg">
           {/* Quick options */}
           <div className="mb-2 space-y-1">
             {quickOptions.map((opt) => (
@@ -80,7 +80,7 @@ export const DatePicker: FC<DatePickerProps> = ({
                   onChange?.(opt.getValue())
                   setIsOpen(false)
                 }}
-                className="w-full rounded px-3 py-2 text-left text-sm hover:bg-gray-100"
+                className="hover:bg-muted w-full rounded px-3 py-2 text-left text-sm"
               >
                 {opt.label}
               </button>
@@ -89,7 +89,7 @@ export const DatePicker: FC<DatePickerProps> = ({
 
           <div className="border-t pt-2">
             {/* TODO: Implement full calendar */}
-            <p className="py-4 text-center text-xs text-gray-500">
+            <p className="text-muted-foreground py-4 text-center text-xs">
               Full calendar coming soon
             </p>
           </div>
@@ -101,7 +101,7 @@ export const DatePicker: FC<DatePickerProps> = ({
                 onChange?.(undefined)
                 setIsOpen(false)
               }}
-              className="w-full rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+              className="w-full rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
             >
               Clear date
             </button>

@@ -17,7 +17,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { format, formatDistanceToNow, isBefore, addHours, addDays, setHours, setMinutes, startOfTomorrow } from 'date-fns'
+import {
+  format,
+  formatDistanceToNow,
+  isBefore,
+  addHours,
+  addDays,
+  setHours,
+  setMinutes,
+  startOfTomorrow,
+} from 'date-fns'
 
 // ============================================================================
 // TYPES
@@ -78,14 +87,16 @@ const QUICK_OPTIONS: QuickOption[] = [
     label: '1 hour before due',
     icon: Clock,
     requiresDueDate: true,
-    getTime: (dueDate?: Date | null) => dueDate ? addHours(dueDate, -1) : addHours(new Date(), 1),
+    getTime: (dueDate?: Date | null) =>
+      dueDate ? addHours(dueDate, -1) : addHours(new Date(), 1),
   },
   {
     id: 'one_day_before',
     label: '1 day before due',
     icon: Clock,
     requiresDueDate: true,
-    getTime: (dueDate?: Date | null) => dueDate ? addDays(dueDate, -1) : startOfTomorrow(),
+    getTime: (dueDate?: Date | null) =>
+      dueDate ? addDays(dueDate, -1) : startOfTomorrow(),
   },
 ]
 
@@ -131,40 +142,48 @@ const ReminderItem: FC<{
   onDelete?: () => void
   isDeleting?: boolean
 }> = ({ reminder, onDelete, isDeleting }) => {
-  const remindAt = typeof reminder.remindAt === 'string'
-    ? new Date(reminder.remindAt)
-    : reminder.remindAt
+  const remindAt =
+    typeof reminder.remindAt === 'string'
+      ? new Date(reminder.remindAt)
+      : reminder.remindAt
   const isPast = isBefore(remindAt, new Date())
 
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-3 p-3 rounded-lg border',
-        isPast && !reminder.isSent && 'border-yellow-300 bg-yellow-50',
-        reminder.isSent && 'border-green-300 bg-green-50 opacity-75'
+        'flex items-center justify-between gap-3 rounded-lg border p-3',
+        isPast &&
+          !reminder.isSent &&
+          'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30',
+        reminder.isSent &&
+          'border-green-300 bg-green-50 opacity-75 dark:border-green-700 dark:bg-green-900/30'
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 items-center gap-3">
         <div
           className={cn(
-            'p-2 rounded-full',
-            isPast && !reminder.isSent ? 'bg-yellow-100' : 'bg-gray-100',
-            reminder.isSent && 'bg-green-100'
+            'rounded-full p-2',
+            isPast && !reminder.isSent
+              ? 'bg-yellow-100 dark:bg-yellow-900/50'
+              : 'bg-muted',
+            reminder.isSent && 'bg-green-100 dark:bg-green-900/50'
           )}
         >
           <Bell
             className={cn(
               'h-4 w-4',
-              isPast && !reminder.isSent ? 'text-yellow-600' : 'text-gray-600',
-              reminder.isSent && 'text-green-600'
+              isPast && !reminder.isSent
+                ? 'text-yellow-600 dark:text-yellow-400'
+                : 'text-muted-foreground',
+              reminder.isSent && 'text-green-600 dark:text-green-400'
             )}
           />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate">
+          <p className="truncate text-sm font-medium">
             {formatReminderTime(remindAt)}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {getReminderTypeLabel(reminder.type)}
             {reminder.isSent && ' - Sent'}
           </p>
@@ -177,7 +196,7 @@ const ReminderItem: FC<{
           size="sm"
           onClick={onDelete}
           disabled={isDeleting}
-          className="shrink-0 text-muted-foreground hover:text-red-600"
+          className="text-muted-foreground shrink-0 hover:text-red-600"
         >
           {isDeleting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -219,33 +238,33 @@ const AddReminderDialog: FC<{
             return (
               <button
                 key={option.id}
-                onClick={() => !isDisabled && !isPast && !isCreating && onSelect(option)}
+                onClick={() =>
+                  !isDisabled && !isPast && !isCreating && onSelect(option)
+                }
                 disabled={isDisabled || isPast || isCreating}
                 className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors',
+                  'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
                   isDisabled || isPast
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-gray-50 hover:border-gray-300',
-                  isCreating && 'opacity-50 cursor-wait'
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'hover:bg-muted hover:border-border',
+                  isCreating && 'cursor-wait opacity-50'
                 )}
               >
-                <div className="p-2 bg-gray-100 rounded-full">
-                  <option.icon className="h-4 w-4 text-gray-600" />
+                <div className="bg-muted rounded-full p-2">
+                  <option.icon className="text-muted-foreground h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{option.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isPast ? (
-                      'Time has passed'
-                    ) : isDisabled ? (
-                      'Requires due date'
-                    ) : (
-                      format(reminderTime, 'MMM d, h:mm a')
-                    )}
+                  <p className="text-muted-foreground text-xs">
+                    {isPast
+                      ? 'Time has passed'
+                      : isDisabled
+                        ? 'Requires due date'
+                        : format(reminderTime, 'MMM d, h:mm a')}
                   </p>
                 </div>
                 {isCreating && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                 )}
               </button>
             )
@@ -315,11 +334,11 @@ export const TaskReminders: FC<TaskRemindersProps> = ({
     return (
       <div className={cn('space-y-3', className)}>
         <div className="flex items-center gap-2">
-          <Bell className="h-4 w-4 text-muted-foreground" />
+          <Bell className="text-muted-foreground h-4 w-4" />
           <span className="text-sm font-medium">Reminders</span>
         </div>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
         </div>
       </div>
     )
@@ -329,10 +348,10 @@ export const TaskReminders: FC<TaskRemindersProps> = ({
     <div className={cn('space-y-3', className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Bell className="h-4 w-4 text-muted-foreground" />
+          <Bell className="text-muted-foreground h-4 w-4" />
           <span className="text-sm font-medium">Reminders</span>
           {pendingReminders.length > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
               {pendingReminders.length}
             </span>
           )}
@@ -345,14 +364,14 @@ export const TaskReminders: FC<TaskRemindersProps> = ({
             onClick={() => setIsDialogOpen(true)}
             className="text-muted-foreground hover:text-foreground"
           >
-            <BellPlus className="h-4 w-4 mr-1" />
+            <BellPlus className="mr-1 h-4 w-4" />
             Add
           </Button>
         )}
       </div>
 
       {reminders.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-2">
+        <p className="text-muted-foreground py-2 text-sm">
           No reminders set for this task.
         </p>
       ) : (
@@ -362,7 +381,11 @@ export const TaskReminders: FC<TaskRemindersProps> = ({
             <ReminderItem
               key={reminder.id}
               reminder={reminder}
-              onDelete={onDeleteReminder ? () => handleDeleteReminder(reminder.id) : undefined}
+              onDelete={
+                onDeleteReminder
+                  ? () => handleDeleteReminder(reminder.id)
+                  : undefined
+              }
               isDeleting={deletingId === reminder.id}
             />
           ))}
@@ -370,13 +393,14 @@ export const TaskReminders: FC<TaskRemindersProps> = ({
           {/* Sent reminders (collapsed) */}
           {sentReminders.length > 0 && (
             <details className="group">
-              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground list-none flex items-center gap-1">
-                <span className="group-open:rotate-90 transition-transform">
+              <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer list-none items-center gap-1 text-xs">
+                <span className="transition-transform group-open:rotate-90">
                   &rsaquo;
                 </span>
-                {sentReminders.length} sent reminder{sentReminders.length > 1 ? 's' : ''}
+                {sentReminders.length} sent reminder
+                {sentReminders.length > 1 ? 's' : ''}
               </summary>
-              <div className="space-y-2 mt-2 pl-4">
+              <div className="mt-2 space-y-2 pl-4">
                 {sentReminders.map((reminder) => (
                   <ReminderItem key={reminder.id} reminder={reminder} />
                 ))}
@@ -410,17 +434,15 @@ export const TaskReminderButton: FC<{
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1 text-xs rounded-md px-2 py-1 transition-colors',
+        'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
         hasReminders
-          ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-          : 'text-muted-foreground hover:bg-gray-100',
+          ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50'
+          : 'text-muted-foreground hover:bg-muted',
         className
       )}
     >
       <Bell className="h-3 w-3" />
-      {hasReminders && reminderCount > 0 && (
-        <span>{reminderCount}</span>
-      )}
+      {hasReminders && reminderCount > 0 && <span>{reminderCount}</span>}
     </button>
   )
 }

@@ -190,7 +190,7 @@ const CalendarGrid: FC<{
               new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1)
             )
           }
-          className="rounded p-1 hover:bg-gray-100"
+          className="hover:bg-muted rounded p-1"
         >
           &lsaquo;
         </button>
@@ -204,7 +204,7 @@ const CalendarGrid: FC<{
               new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1)
             )
           }
-          className="rounded p-1 hover:bg-gray-100"
+          className="hover:bg-muted rounded p-1"
         >
           &rsaquo;
         </button>
@@ -240,9 +240,7 @@ const CalendarGrid: FC<{
             disabled={isDateDisabled(day)}
             className={cn(
               'h-8 w-8 rounded text-sm transition-colors',
-              isDateSelected(day)
-                ? 'bg-blue-600 text-white'
-                : 'hover:bg-gray-100',
+              isDateSelected(day) ? 'bg-blue-600 text-white' : 'hover:bg-muted',
               isDateDisabled(day) && 'cursor-not-allowed opacity-50'
             )}
           >
@@ -311,7 +309,7 @@ const TimePicker: FC<{
             type="button"
             key={option.id}
             onClick={() => handleQuickTime(option.hour, option.minute)}
-            className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200"
+            className="bg-muted hover:bg-muted/80 rounded px-2 py-1 text-xs transition-colors"
           >
             {option.label}
           </button>
@@ -428,7 +426,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
         disabled={disabled}
         className={cn(
           'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-          disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50',
+          disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted',
           isOpen && 'ring-2 ring-blue-500 ring-offset-1'
         )}
       >
@@ -454,7 +452,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border bg-white shadow-lg">
+        <div className="bg-background absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border shadow-lg">
           {/* Quick date options */}
           <div className="border-b p-2">
             <div className="flex flex-wrap gap-1">
@@ -466,8 +464,8 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
                   className={cn(
                     'rounded px-3 py-1.5 text-sm transition-colors',
                     value && option.check(value)
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 hover:bg-gray-200'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-muted hover:bg-muted/80'
                   )}
                 >
                   {option.label}
@@ -492,7 +490,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
                   type="checkbox"
                   checked={includeTime}
                   onChange={toggleTime}
-                  className="rounded border-gray-300"
+                  className="border-border rounded"
                 />
                 <span className="text-sm">Include time</span>
               </label>

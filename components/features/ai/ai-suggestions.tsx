@@ -33,20 +33,22 @@ export const AISuggestions: FC<AISuggestionsProps> = ({
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-medium text-gray-700">AI Suggestions</h3>
+      <h3 className="text-foreground text-sm font-medium">AI Suggestions</h3>
       <div className="grid gap-2">
         {suggestions.map((suggestion) => (
           <button
             key={suggestion.type}
             onClick={() => onSelect(suggestion.type)}
-            className="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-blue-50 hover:border-blue-200"
+            className="border-border flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
           >
-            <span className="text-blue-600 text-sm font-mono">
+            <span className="font-mono text-sm text-blue-600 dark:text-blue-400">
               {suggestionIcons[suggestion.type]}
             </span>
             <div>
-              <p className="font-medium text-sm">{suggestion.label}</p>
-              <p className="text-xs text-gray-500">{suggestion.description}</p>
+              <p className="text-sm font-medium">{suggestion.label}</p>
+              <p className="text-muted-foreground text-xs">
+                {suggestion.description}
+              </p>
             </div>
           </button>
         ))}
