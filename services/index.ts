@@ -37,8 +37,6 @@ export type {
 
 export { aiService } from './ai.service'
 
-export { aiUsageService } from './ai-usage.service'
-
 export { aiContextService } from './ai-context.service'
 export type {
   TaskContext,
