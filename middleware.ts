@@ -18,6 +18,7 @@ const protectedRoutes = [
   '/upcoming',
   '/projects',
   '/settings',
+  '/task',
 ]
 
 // Routes that should redirect authenticated users away (auth pages)
@@ -198,12 +199,21 @@ export function middleware(request: NextRequest) {
       response = NextResponse.next()
     }
   }
+  // Redirect authenticated users from landing page to dashboard
+  else if (pathname === '/') {
+    if (authenticated) {
+      const dashboardUrl = new URL('/dashboard', request.url)
+      response = NextResponse.redirect(dashboardUrl)
+    } else {
+      response = NextResponse.next()
+    }
+  }
   // Check if authenticated user is trying to access auth pages
   else if (matchesRoute(pathname, authRoutes)) {
     if (authenticated) {
       // Redirect to dashboard
-      const todayUrl = new URL('/today', request.url)
-      response = NextResponse.redirect(todayUrl)
+      const dashboardUrl = new URL('/dashboard', request.url)
+      response = NextResponse.redirect(dashboardUrl)
     } else {
       response = NextResponse.next()
     }
