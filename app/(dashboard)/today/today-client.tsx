@@ -136,8 +136,8 @@ export const TodayPageClient: FC<TodayPageClientProps> = ({
             emptyMessage="No tasks due today"
           />
         ) : (
-          <div className="rounded-lg border bg-gray-50 p-8 text-center">
-            <p className="text-gray-500">
+          <div className="rounded-lg border bg-muted p-8 text-center">
+            <p className="text-muted-foreground">
               {hasOverdue
                 ? 'No new tasks for today. Consider tackling your overdue tasks!'
                 : 'No tasks due today. Add your first task!'}
@@ -148,11 +148,11 @@ export const TodayPageClient: FC<TodayPageClientProps> = ({
 
       {/* Empty State */}
       {hasNoTasks && (
-        <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center">
-          <h3 className="mb-2 text-lg font-semibold text-gray-800">
+        <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center dark:from-blue-950/30 dark:to-indigo-950/30">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
             Your day is clear!
           </h3>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             No tasks due today. Use the form above to add tasks, or check your
             upcoming tasks.
           </p>

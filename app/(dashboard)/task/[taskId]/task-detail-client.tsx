@@ -287,7 +287,7 @@ export const TaskDetailClient: FC<TaskDetailClientProps> = ({
         </div>
 
         {/* AI Panel (task-specific) */}
-        <aside className="flex w-96 flex-col rounded-lg border bg-gray-50">
+        <aside className="flex w-96 flex-col rounded-lg border bg-muted">
           <div className="border-b p-4">
             <h2 className="font-semibold">AI Assistant</h2>
             <div className="mt-3 flex flex-wrap gap-2">

@@ -122,7 +122,7 @@ export const AIChat: FC<AIChatProps> = ({ taskId, taskTitle }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask me anything..."
-            className="flex-1 rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             disabled={isLoading}
           />
           <button

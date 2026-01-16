@@ -113,14 +113,14 @@ function NavLink({ href, icon, title, description }: NavLinkProps) {
   return (
     <Link
       href={href}
-      className="flex items-start gap-4 rounded-lg border border-gray-200 p-4 transition-colors hover:border-primary hover:bg-gray-50"
+      className="flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:border-primary hover:bg-muted"
     >
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         {icon}
       </div>
       <div>
-        <h3 className="font-medium text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
+        <h3 className="font-medium text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </Link>
   )
@@ -131,19 +131,19 @@ function NavLink({ href, icon, title, description }: NavLinkProps) {
  */
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-lg text-center">
         {/* 404 illustration */}
         <div className="mb-8">
-          <span className="text-8xl font-bold text-gray-200">404</span>
+          <span className="text-8xl font-bold text-muted-foreground/30">404</span>
         </div>
 
         {/* Error message */}
-        <h1 className="mb-3 text-2xl font-bold text-gray-900">
+        <h1 className="mb-3 text-2xl font-bold text-foreground">
           Page not found
         </h1>
 
-        <p className="mb-8 text-gray-600">
+        <p className="mb-8 text-muted-foreground">
           Sorry, we could not find the page you are looking for.
           It might have been moved, deleted, or never existed.
         </p>
