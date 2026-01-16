@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { toast } from 'sonner'
@@ -247,6 +248,14 @@ function ProfileSection({ user }: ProfileSectionProps) {
 
 function AppearanceSection() {
   const { preferences, updatePreference } = useSettings()
+  const { setTheme } = useTheme()
+
+  const handleThemeChange = (value: string) => {
+    // Update the preference in the database
+    updatePreference('theme', value as UserPreferences['theme'])
+    // Apply the theme change immediately via next-themes
+    setTheme(value)
+  }
 
   return (
     <Card>
@@ -262,9 +271,7 @@ function AppearanceSection() {
           label="Theme"
           description="Choose your preferred color scheme"
           value={preferences.theme || 'system'}
-          onValueChange={(value) =>
-            updatePreference('theme', value as UserPreferences['theme'])
-          }
+          onValueChange={handleThemeChange}
           options={THEME_OPTIONS}
         />
         <SelectField
