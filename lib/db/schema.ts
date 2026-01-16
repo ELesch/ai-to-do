@@ -15,6 +15,7 @@ import {
   uniqueIndex,
   primaryKey,
   inet,
+  real,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -65,6 +66,45 @@ export const reminderTypeEnum = pgEnum('reminder_type', [
   'scheduled',
   'custom',
   'follow_up',
+])
+
+export const enrichmentStatusEnum = pgEnum('enrichment_status', [
+  'pending',
+  'accepted',
+  'partially_accepted',
+  'rejected',
+  'expired',
+])
+
+export const executionOutcomeEnum = pgEnum('execution_outcome', [
+  'completed',
+  'completed_late',
+  'abandoned',
+  'delegated',
+  'deferred',
+])
+
+export const artifactTypeEnum = pgEnum('artifact_type', [
+  'research',
+  'draft',
+  'plan',
+  'outline',
+  'summary',
+])
+
+export const artifactStatusEnum = pgEnum('artifact_status', [
+  'generated',
+  'accepted',
+  'modified',
+  'rejected',
+])
+
+export const subtaskTypeEnum = pgEnum('subtask_type', [
+  'action',
+  'research',
+  'draft',
+  'plan',
+  'review',
 ])
 
 // ============================================================================
@@ -423,6 +463,163 @@ export const aiUsage = pgTable(
   })
 )
 
+// Task Enrichment Proposals
+export const taskEnrichmentProposals = pgTable(
+  'task_enrichment_proposals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    // Proposed enrichments
+    proposedTitle: varchar('proposed_title', { length: 500 }),
+    proposedDescription: text('proposed_description'),
+    proposedDueDate: timestamp('proposed_due_date', { withTimezone: true }),
+    proposedEstimatedMinutes: integer('proposed_estimated_minutes'),
+    proposedPriority: taskPriorityEnum('proposed_priority'),
+    proposedSubtasks: jsonb('proposed_subtasks')
+      .$type<ProposedSubtask[]>()
+      .default([]),
+
+    // Similar tasks analysis
+    similarTaskIds: uuid('similar_task_ids').array(),
+    similarityAnalysis: jsonb(
+      'similarity_analysis'
+    ).$type<SimilarityAnalysis>(),
+
+    // User response tracking
+    status: enrichmentStatusEnum('status').default('pending').notNull(),
+    acceptedFields: text('accepted_fields').array(),
+    userModifications:
+      jsonb('user_modifications').$type<Record<string, unknown>>(),
+
+    // Metadata
+    aiModel: varchar('ai_model', { length: 100 }),
+    aiProvider: varchar('ai_provider', { length: 50 }),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    processingTimeMs: integer('processing_time_ms'),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+  },
+  (table) => ({
+    taskIdIdx: index('task_enrichment_proposals_task_id_idx').on(table.taskId),
+    userStatusIdx: index('task_enrichment_proposals_user_status_idx').on(
+      table.userId,
+      table.status
+    ),
+  })
+)
+
+// Task Execution History
+export const taskExecutionHistory = pgTable(
+  'task_execution_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    // Timing analysis
+    originalEstimatedMinutes: integer('original_estimated_minutes'),
+    finalActualMinutes: integer('final_actual_minutes'),
+    estimationAccuracyRatio: real('estimation_accuracy_ratio'),
+
+    // Subtask evolution
+    originalSubtaskCount: integer('original_subtask_count').default(0),
+    subtasksAddedMidExecution: integer('subtasks_added_mid_execution').default(
+      0
+    ),
+    addedSubtaskTitles: text('added_subtask_titles').array(),
+
+    // Stall point tracking
+    stallEvents: jsonb('stall_events').$type<StallEvent[]>().default([]),
+    totalStallTimeMinutes: integer('total_stall_time_minutes').default(0),
+
+    // Outcome tracking
+    outcome: executionOutcomeEnum('outcome').notNull(),
+    completionDate: timestamp('completion_date', { withTimezone: true }),
+    daysOverdue: integer('days_overdue').default(0),
+
+    // Task fingerprint for similarity matching
+    taskCategory: varchar('task_category', { length: 100 }),
+    keywordFingerprint: text('keyword_fingerprint').array(),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('task_execution_history_user_id_idx').on(table.userId),
+    categoryIdx: index('task_execution_history_category_idx').on(
+      table.userId,
+      table.taskCategory
+    ),
+    outcomeIdx: index('task_execution_history_outcome_idx').on(
+      table.userId,
+      table.outcome
+    ),
+  })
+)
+
+// AI Work Artifacts
+export const aiWorkArtifacts = pgTable(
+  'ai_work_artifacts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    subtaskId: uuid('subtask_id').references(() => tasks.id, {
+      onDelete: 'cascade',
+    }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    // Artifact details
+    type: artifactTypeEnum('type').notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    content: text('content').notNull(),
+
+    // Status tracking
+    status: artifactStatusEnum('status').default('generated').notNull(),
+
+    // AI metadata
+    aiModel: varchar('ai_model', { length: 100 }),
+    aiProvider: varchar('ai_provider', { length: 50 }),
+    promptUsed: text('prompt_used'),
+
+    // User feedback
+    userRating: integer('user_rating'),
+    userFeedback: text('user_feedback'),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    taskIdIdx: index('ai_work_artifacts_task_id_idx').on(table.taskId),
+    typeIdx: index('ai_work_artifacts_type_idx').on(table.userId, table.type),
+  })
+)
+
 // ============================================================================
 // AUTH ENTITIES
 // ============================================================================
@@ -515,6 +712,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   activityLog: many(activityLog),
   reminders: many(reminders),
+  taskEnrichmentProposals: many(taskEnrichmentProposals),
+  taskExecutionHistory: many(taskExecutionHistory),
+  aiWorkArtifacts: many(aiWorkArtifacts),
 }))
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -551,6 +751,10 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   reminders: many(reminders),
   aiConversations: many(aiConversations),
   aiContext: many(aiContext),
+  enrichmentProposals: many(taskEnrichmentProposals),
+  executionHistory: many(taskExecutionHistory),
+  aiWorkArtifacts: many(aiWorkArtifacts),
+  subtaskArtifacts: many(aiWorkArtifacts, { relationName: 'subtaskArtifacts' }),
 }))
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
@@ -618,6 +822,53 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }))
+
+export const taskEnrichmentProposalsRelations = relations(
+  taskEnrichmentProposals,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskEnrichmentProposals.taskId],
+      references: [tasks.id],
+    }),
+    user: one(users, {
+      fields: [taskEnrichmentProposals.userId],
+      references: [users.id],
+    }),
+  })
+)
+
+export const taskExecutionHistoryRelations = relations(
+  taskExecutionHistory,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskExecutionHistory.taskId],
+      references: [tasks.id],
+    }),
+    user: one(users, {
+      fields: [taskExecutionHistory.userId],
+      references: [users.id],
+    }),
+  })
+)
+
+export const aiWorkArtifactsRelations = relations(
+  aiWorkArtifacts,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [aiWorkArtifacts.taskId],
+      references: [tasks.id],
+    }),
+    subtask: one(tasks, {
+      fields: [aiWorkArtifacts.subtaskId],
+      references: [tasks.id],
+      relationName: 'subtaskArtifacts',
+    }),
+    user: one(users, {
+      fields: [aiWorkArtifacts.userId],
+      references: [users.id],
+    }),
+  })
+)
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -698,6 +949,10 @@ export interface TaskMetadata {
   // AI interaction
   aiGenerated?: boolean
   aiDecomposedFrom?: string
+
+  // AI Enrichment metadata (for AI-suggested subtasks)
+  subtaskType?: 'action' | 'research' | 'draft' | 'plan' | 'review'
+  aiCanDo?: boolean
 
   // Attachments
   attachments?: Array<{
@@ -816,6 +1071,44 @@ export interface ActivityChanges {
   fields?: string[]
 }
 
+// Task Enrichment Types
+export interface ProposedSubtask {
+  title: string
+  estimatedMinutes?: number
+  type?: 'action' | 'research' | 'draft' | 'plan' | 'review'
+  aiCanDo?: boolean
+  suggestedOrder: number
+}
+
+export interface SimilarityAnalysis {
+  matchedTasks: Array<{
+    taskId: string
+    title: string
+    similarityScore: number
+    matchReasons: string[]
+    executionInsights: {
+      estimatedVsActual?: number
+      subtasksAdded?: number
+      stallPoints?: string[]
+      outcome: string
+    }
+  }>
+  aggregatedInsights: {
+    avgEstimationAccuracy: number
+    commonSubtasksAdded: string[]
+    commonStallPoints: string[]
+    successRate: number
+  }
+}
+
+export interface StallEvent {
+  startTime: string
+  endTime: string
+  durationMinutes: number
+  reason?: string
+  subtaskId?: string
+}
+
 // ============================================================================
 // TYPE EXPORTS FOR TABLE INFERENCE
 // ============================================================================
@@ -861,3 +1154,13 @@ export type NewSession = typeof sessions.$inferInsert
 
 export type VerificationToken = typeof verificationTokens.$inferSelect
 export type NewVerificationToken = typeof verificationTokens.$inferInsert
+
+export type TaskEnrichmentProposal = typeof taskEnrichmentProposals.$inferSelect
+export type NewTaskEnrichmentProposal =
+  typeof taskEnrichmentProposals.$inferInsert
+
+export type TaskExecutionHistory = typeof taskExecutionHistory.$inferSelect
+export type NewTaskExecutionHistory = typeof taskExecutionHistory.$inferInsert
+
+export type AIWorkArtifact = typeof aiWorkArtifacts.$inferSelect
+export type NewAIWorkArtifact = typeof aiWorkArtifacts.$inferInsert

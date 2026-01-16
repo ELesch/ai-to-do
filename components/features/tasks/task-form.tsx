@@ -9,7 +9,15 @@ import { type FC, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Calendar, Loader2, Bell, BellPlus, X, Clock } from 'lucide-react'
+import {
+  Calendar,
+  Loader2,
+  Bell,
+  BellPlus,
+  X,
+  Clock,
+  Sparkles,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -22,8 +30,11 @@ import {
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/shared/date-picker'
 import { DateTimePicker } from '@/components/shared/date-time-picker'
+import { TaskEnrichmentPanel } from '@/components/features/ai/TaskEnrichmentPanel'
+import { useTaskEnrichment } from '@/hooks/use-task-enrichment'
 import { cn } from '@/lib/utils'
 import type { TaskPriority } from '@/types/task'
+import type { ProposedSubtask } from '@/types/ai'
 import {
   format,
   addHours,
@@ -63,6 +74,7 @@ const taskFormSchema = z.object({
   dueDate: z.date().nullable().optional(),
   dueDateHasTime: z.boolean().optional(),
   projectId: z.string().uuid().nullable().optional(),
+  estimatedMinutes: z.number().int().positive().nullable().optional(),
   reminders: z
     .array(
       z.object({
@@ -88,6 +100,15 @@ interface Project {
   color: string
 }
 
+/**
+ * Subtask data to be created with the task
+ */
+export interface EnrichedSubtask {
+  title: string
+  estimatedMinutes?: number
+  suggestedOrder: number
+}
+
 interface TaskFormProps {
   /** Initial values for editing */
   defaultValues?: Partial<TaskFormValues>
@@ -95,8 +116,11 @@ interface TaskFormProps {
   projects?: Project[]
   /** Loading state for projects */
   projectsLoading?: boolean
-  /** Form submission handler */
-  onSubmit: (values: TaskFormValues) => void | Promise<void>
+  /** Form submission handler - subtasks are passed separately for creation */
+  onSubmit: (
+    values: TaskFormValues,
+    subtasks?: EnrichedSubtask[]
+  ) => void | Promise<void>
   /** Cancel handler */
   onCancel?: () => void
   /** Whether the form is submitting */
@@ -107,6 +131,8 @@ interface TaskFormProps {
   className?: string
   /** Show reminder section */
   showReminders?: boolean
+  /** Show AI enrichment button */
+  showAIEnrichment?: boolean
 }
 
 /**
@@ -193,6 +219,7 @@ export const TaskForm: FC<TaskFormProps> = ({
   submitLabel = 'Create Task',
   className,
   showReminders = true,
+  showAIEnrichment = true,
 }) => {
   const [remindersList, setRemindersList] = useState<ReminderData[]>([])
   const [showReminderOptions, setShowReminderOptions] = useState(false)
@@ -200,11 +227,28 @@ export const TaskForm: FC<TaskFormProps> = ({
     null
   )
 
+  // AI Enrichment state
+  const [showEnrichmentPanel, setShowEnrichmentPanel] = useState(false)
+  const [enrichedSubtasks, setEnrichedSubtasks] = useState<EnrichedSubtask[]>(
+    []
+  )
+
+  // AI Enrichment hook
+  const {
+    proposal,
+    similarTasks,
+    insights,
+    isLoading: isEnriching,
+    enrich,
+    clear: clearEnrichment,
+  } = useTaskEnrichment()
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -215,6 +259,7 @@ export const TaskForm: FC<TaskFormProps> = ({
       dueDate: null,
       dueDateHasTime: false,
       projectId: null,
+      estimatedMinutes: null,
       reminders: [],
       ...defaultValues,
     },
@@ -223,6 +268,82 @@ export const TaskForm: FC<TaskFormProps> = ({
   const selectedPriority = watch('priority')
   const selectedDueDate = watch('dueDate')
   const selectedProjectId = watch('projectId')
+  const selectedEstimatedMinutes = watch('estimatedMinutes')
+
+  // Handle "Enhance with AI" button click
+  const handleEnhanceWithAI = useCallback(() => {
+    const values = getValues()
+    const title = values.title?.trim()
+    const description = values.description?.trim()
+
+    if (!title) {
+      // Don't enrich without a title
+      return
+    }
+
+    setShowEnrichmentPanel(true)
+    enrich(title, description, selectedProjectId ?? undefined)
+  }, [getValues, enrich, selectedProjectId])
+
+  // Handle accepting enrichment from the panel
+  const handleAcceptEnrichment = useCallback(
+    (acceptedFields: string[], modifications?: Record<string, unknown>) => {
+      if (!proposal) return
+
+      // Get the values to apply (use modifications if provided, otherwise proposal values)
+      const title = (modifications?.title as string) ?? proposal.proposedTitle
+      const description =
+        (modifications?.description as string) ?? proposal.proposedDescription
+      const dueDateStr =
+        (modifications?.dueDate as string | null) ?? proposal.proposedDueDate
+      const estimatedMinutes =
+        (modifications?.estimatedMinutes as number) ??
+        proposal.proposedEstimatedMinutes
+      const priority =
+        (modifications?.priority as TaskPriority) ?? proposal.proposedPriority
+      const subtasks =
+        (modifications?.subtasks as ProposedSubtask[]) ??
+        proposal.proposedSubtasks
+
+      // Apply accepted fields to the form
+      if (acceptedFields.includes('title')) {
+        setValue('title', title)
+      }
+      if (acceptedFields.includes('description')) {
+        setValue('description', description)
+      }
+      if (acceptedFields.includes('dueDate') && dueDateStr) {
+        setValue('dueDate', new Date(dueDateStr))
+      }
+      if (acceptedFields.includes('estimatedMinutes')) {
+        setValue('estimatedMinutes', estimatedMinutes)
+      }
+      if (acceptedFields.includes('priority')) {
+        setValue('priority', priority)
+      }
+      if (acceptedFields.includes('subtasks') && subtasks.length > 0) {
+        // Store subtasks to be created when form is submitted
+        setEnrichedSubtasks(
+          subtasks.map((s) => ({
+            title: s.title,
+            estimatedMinutes: s.estimatedMinutes,
+            suggestedOrder: s.suggestedOrder,
+          }))
+        )
+      }
+
+      // Close the panel and clear enrichment state
+      setShowEnrichmentPanel(false)
+      clearEnrichment()
+    },
+    [proposal, setValue, clearEnrichment]
+  )
+
+  // Handle dismissing the enrichment panel
+  const handleDismissEnrichment = useCallback(() => {
+    setShowEnrichmentPanel(false)
+    clearEnrichment()
+  }, [clearEnrichment])
 
   // Add a reminder from preset
   const handleAddReminderPreset = useCallback(
@@ -298,16 +419,39 @@ export const TaskForm: FC<TaskFormProps> = ({
         remindAt: r.remindAt,
       })),
     }
-    await onSubmit(formValues)
+    // Pass subtasks separately for creation
+    await onSubmit(
+      formValues,
+      enrichedSubtasks.length > 0 ? enrichedSubtasks : undefined
+    )
   })
 
   return (
     <form onSubmit={handleFormSubmit} className={cn('space-y-6', className)}>
-      {/* Title field */}
+      {/* Title field with AI Enhance button */}
       <div className="space-y-2">
-        <FormLabel htmlFor="title" required>
-          Title
-        </FormLabel>
+        <div className="flex items-center justify-between">
+          <FormLabel htmlFor="title" required>
+            Title
+          </FormLabel>
+          {showAIEnrichment && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleEnhanceWithAI}
+              disabled={isEnriching || isSubmitting}
+              className="text-primary hover:text-primary/80 gap-1.5"
+            >
+              {isEnriching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {isEnriching ? 'Enhancing...' : 'Enhance with AI'}
+            </Button>
+          )}
+        </div>
         <Input
           id="title"
           placeholder="What needs to be done?"
@@ -317,6 +461,53 @@ export const TaskForm: FC<TaskFormProps> = ({
         />
         <FormError message={errors.title?.message} />
       </div>
+
+      {/* AI Enrichment Panel */}
+      {showAIEnrichment && showEnrichmentPanel && (
+        <TaskEnrichmentPanel
+          proposal={proposal}
+          similarTasks={similarTasks}
+          insights={insights}
+          isLoading={isEnriching}
+          onAccept={handleAcceptEnrichment}
+          onDismiss={handleDismissEnrichment}
+        />
+      )}
+
+      {/* Enriched subtasks preview */}
+      {enrichedSubtasks.length > 0 && (
+        <div className="border-primary/20 bg-primary/5 rounded-lg border p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              <Sparkles className="text-primary h-4 w-4" />
+              {enrichedSubtasks.length} subtask
+              {enrichedSubtasks.length !== 1 ? 's' : ''} will be created
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setEnrichedSubtasks([])}
+              className="text-muted-foreground hover:text-foreground h-6 px-2"
+            >
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
+          </div>
+          <ul className="text-muted-foreground space-y-1 text-sm">
+            {enrichedSubtasks.slice(0, 3).map((subtask, index) => (
+              <li key={index} className="truncate">
+                {subtask.suggestedOrder}. {subtask.title}
+              </li>
+            ))}
+            {enrichedSubtasks.length > 3 && (
+              <li className="text-xs">
+                +{enrichedSubtasks.length - 3} more...
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
 
       {/* Description field */}
       <div className="space-y-2">
@@ -331,8 +522,8 @@ export const TaskForm: FC<TaskFormProps> = ({
         <FormError message={errors.description?.message} />
       </div>
 
-      {/* Priority and Due Date row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Priority, Due Date, and Estimated Time row */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Priority select */}
         <div className="space-y-2">
           <FormLabel htmlFor="priority">Priority</FormLabel>
@@ -363,6 +554,28 @@ export const TaskForm: FC<TaskFormProps> = ({
             onChange={(date) => setValue('dueDate', date ?? null)}
             placeholder="Select due date"
           />
+        </div>
+
+        {/* Estimated time */}
+        <div className="space-y-2">
+          <FormLabel htmlFor="estimatedMinutes">Estimated Time</FormLabel>
+          <div className="flex items-center gap-2">
+            <Input
+              id="estimatedMinutes"
+              type="number"
+              min={1}
+              placeholder="Minutes"
+              value={selectedEstimatedMinutes ?? ''}
+              onChange={(e) => {
+                const value = e.target.value ? parseInt(e.target.value) : null
+                setValue('estimatedMinutes', value)
+              }}
+              className="w-full"
+            />
+            <span className="text-muted-foreground text-sm whitespace-nowrap">
+              min
+            </span>
+          </div>
         </div>
       </div>
 

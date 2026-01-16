@@ -205,7 +205,7 @@ export interface FeatureProviderConfig {
  * NOTE: All GPT-5 models require temperature=1.0 (GPT5_REQUIRED)
  */
 export const FEATURE_PROVIDER_CONFIG: Record<
-  AIOperation | 'suggestions',
+  AIOperation | 'suggestions' | 'enrich',
   FeatureProviderConfig
 > = {
   /** Task decomposition - fast operation, use GPT-5 Mini (valid model ID: gpt-5-mini) */
@@ -250,13 +250,20 @@ export const FEATURE_PROVIDER_CONFIG: Record<
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
     temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
+  /** Task enrichment - complex reasoning for subtasks and estimates, use GPT-5.2 (valid model ID: gpt-5.2) */
+  enrich: {
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_2,
+    maxTokens: TOKEN_LIMITS.MEDIUM_RESPONSE,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
+  },
 }
 
 /**
  * Get the provider configuration for a specific feature
  */
 export function getFeatureProviderConfig(
-  feature: AIOperation | 'suggestions'
+  feature: AIOperation | 'suggestions' | 'enrich'
 ): FeatureProviderConfig {
   return FEATURE_PROVIDER_CONFIG[feature]
 }

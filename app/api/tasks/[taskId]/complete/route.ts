@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/helpers'
 import { taskService } from '@/services/task.service'
+import { taskEnrichmentService } from '@/services/task-enrichment.service'
 import { z } from 'zod'
 
 interface RouteParams {
@@ -62,7 +63,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Complete or uncomplete the task
-    const task = await taskService.completeTask(validatedTaskId, user.id, complete)
+    const task = await taskService.completeTask(
+      validatedTaskId,
+      user.id,
+      complete
+    )
+
+    // If task was completed (not uncompleted), record execution history asynchronously
+    // This runs in the background and doesn't block the response
+    if (complete) {
+      // Fire and forget - don't await, handle errors gracefully
+      void (async () => {
+        try {
+          // Only record history for tasks that had enrichment proposals
+          const hasProposals =
+            await taskEnrichmentService.taskHasEnrichmentProposals(
+              validatedTaskId,
+              user.id
+            )
+
+          if (hasProposals) {
+            await taskEnrichmentService.recordExecutionHistory(
+              user.id,
+              validatedTaskId
+            )
+          }
+        } catch (error) {
+          // Log error but don't fail the task completion
+          console.error(
+            '[TaskComplete] Error recording execution history:',
+            error instanceof Error ? error.message : error
+          )
+        }
+      })()
+    }
 
     return NextResponse.json({
       success: true,

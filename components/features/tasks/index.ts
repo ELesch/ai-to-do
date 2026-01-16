@@ -6,7 +6,7 @@
 export { TaskCard } from './task-card'
 export { TaskList } from './task-list'
 export { TaskDetail } from './task-detail'
-export { QuickAddForm } from './quick-add-form'
+export { QuickAddForm, type EnrichedTaskData } from './quick-add-form'
 export { TaskForm, useTaskForm, type TaskFormValues } from './task-form'
 // TODO: Add exports as components are implemented
 // export { SubtaskList } from './subtask-list'

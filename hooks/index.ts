@@ -96,3 +96,27 @@ export {
   useFocusList,
   useFocusAnnouncement,
 } from './use-focus-trap'
+export {
+  useTaskEnrichment,
+  taskEnrichmentKeys,
+  type EnrichmentData,
+  type UseTaskEnrichmentOptions,
+  type UseTaskEnrichmentReturn,
+} from './use-task-enrichment'
+export {
+  useSimilarTasks,
+  similarTasksKeys,
+  type SimilarTask,
+  type UseSimilarTasksOptions,
+  type UseSimilarTasksReturn,
+} from './use-similar-tasks'
+export {
+  useAIWork,
+  canAIDoWork,
+  getWorkTypeLabel,
+  getWorkTypeDescription,
+  aiWorkKeys,
+  type AIWorkArtifact,
+  type UseAIWorkOptions,
+  type UseAIWorkReturn,
+} from './use-ai-work'
