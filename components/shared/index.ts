@@ -16,4 +16,3 @@ export { RichTextEditor } from './rich-text-editor'
 
 // Accessibility components
 export { VisuallyHidden, useVisuallyHiddenStyles } from './VisuallyHidden'
-export { SkipLink, SkipLinks } from './SkipLink'
