@@ -23,11 +23,20 @@ import { AIConfigError, AIServiceError, AIRateLimitError } from './anthropic'
  * OpenAI GPT-5 generation models with pricing
  * Valid model IDs as of January 2025 - see https://platform.openai.com/docs/models/
  *
- * NOTE: GPT-5 models only support temperature=1.0
+ * =====================================================================
+ * IMPORTANT: DO NOT CHANGE THESE MODEL IDs - THEY ARE VALID AND CORRECT
+ * =====================================================================
+ *
+ * GPT-5 generation models have specific requirements:
+ * 1. Temperature MUST be set to 1.0 (only supported value)
+ * 2. Use max_completion_tokens instead of max_tokens in API calls
+ * 3. max_completion_tokens accounts for input + thinking + output tokens,
+ *    so values should be set higher than traditional max_tokens values
  */
 const OPENAI_MODELS: ProviderModel[] = [
   {
-    // Valid model ID: gpt-5.2 - Latest flagship model (January 2025)
+    // VALID MODEL ID: gpt-5.2 - DO NOT CHANGE
+    // Latest flagship model (January 2025)
     id: 'gpt-5.2',
     name: 'GPT-5.2',
     contextWindow: 400000,
@@ -37,7 +46,8 @@ const OPENAI_MODELS: ProviderModel[] = [
     capabilities: ['chat', 'streaming', 'tool_use', 'vision', 'reasoning'],
   },
   {
-    // Valid model ID: gpt-5.1 - Previous generation flagship (January 2025)
+    // VALID MODEL ID: gpt-5.1 - DO NOT CHANGE
+    // Previous generation flagship (January 2025)
     id: 'gpt-5.1',
     name: 'GPT-5.1',
     contextWindow: 200000,
@@ -47,7 +57,8 @@ const OPENAI_MODELS: ProviderModel[] = [
     capabilities: ['chat', 'streaming', 'tool_use', 'vision', 'reasoning'],
   },
   {
-    // Valid model ID: gpt-5-mini - Fast and cost-effective (January 2025)
+    // VALID MODEL ID: gpt-5-mini - DO NOT CHANGE
+    // Fast and cost-effective (January 2025)
     id: 'gpt-5-mini',
     name: 'GPT-5 Mini',
     contextWindow: 128000,
@@ -146,19 +157,39 @@ export class OpenAIProvider extends BaseAIProvider {
     const client = this.getClient()
     const { messages, systemPrompt, model, maxTokens, temperature } = request
 
+    // Log request details for debugging
+    console.log('=== OpenAI API Request ===')
+    console.log('Model:', model)
+    console.log('Max completion tokens:', maxTokens)
+    console.log('Temperature:', temperature)
+    console.log('Message count:', messages.length)
+
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= RETRY_CONFIG.MAX_RETRIES; attempt++) {
       try {
+        if (attempt > 0) {
+          console.log(`Retry attempt ${attempt} of ${RETRY_CONFIG.MAX_RETRIES}`)
+        }
+
+        // GPT-5 models require max_completion_tokens (not max_tokens)
+        // This accounts for input + thinking + output tokens
         const response = await client.chat.completions.create({
           model,
           messages: toOpenAIMessages(messages, systemPrompt),
           max_completion_tokens: maxTokens,
-          temperature,
+          temperature, // Must be 1.0 for GPT-5 models
         })
 
         const choice = response.choices[0]
         const content = choice?.message?.content ?? ''
+
+        console.log('=== OpenAI API Response ===')
+        console.log('Response model:', response.model)
+        console.log('Input tokens:', response.usage?.prompt_tokens ?? 0)
+        console.log('Output tokens:', response.usage?.completion_tokens ?? 0)
+        console.log('Finish reason:', choice?.finish_reason ?? 'unknown')
+        console.log('Content length:', content.length)
 
         return {
           content,
@@ -172,6 +203,19 @@ export class OpenAIProvider extends BaseAIProvider {
         }
       } catch (error) {
         lastError = error as Error
+
+        // Log error details
+        console.error('=== OpenAI API Error ===')
+        console.error('Attempt:', attempt + 1)
+        console.error('Error type:', error?.constructor?.name)
+        if (error instanceof OpenAI.APIError) {
+          console.error('Status:', error.status)
+          console.error('Message:', error.message)
+          console.error('Code:', error.code)
+          console.error('Type:', error.type)
+        } else {
+          console.error('Error:', error instanceof Error ? error.message : String(error))
+        }
 
         if (error instanceof OpenAI.APIError) {
           // Handle specific API errors
@@ -248,11 +292,13 @@ export class OpenAIProvider extends BaseAIProvider {
     let responseModel = model
 
     try {
+      // GPT-5 models require max_completion_tokens (not max_tokens)
+      // This accounts for input + thinking + output tokens
       const stream = await client.chat.completions.create({
         model,
         messages: toOpenAIMessages(messages, systemPrompt),
         max_completion_tokens: maxTokens,
-        temperature,
+        temperature, // Must be 1.0 for GPT-5 models
         stream: true,
         stream_options: { include_usage: true },
       })

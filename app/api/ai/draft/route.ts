@@ -229,6 +229,10 @@ Please provide a summary that:
  */
 export async function POST(request: NextRequest) {
   try {
+    // Log incoming request for debugging
+    console.log('=== AI Draft Request ===')
+    console.log('Timestamp:', new Date().toISOString())
+
     // Authentication check
     const user = await getCurrentUser()
     if (!user) {
@@ -243,6 +247,10 @@ export async function POST(request: NextRequest) {
     const validatedData = draftRequestSchema.parse(body)
 
     const { action, taskId, taskContext, content, selectedText } = validatedData
+
+    console.log('Action:', action)
+    console.log('Task ID:', taskId)
+    console.log('Task title:', taskContext?.title ?? 'Not provided')
 
     // Verify task ownership
     const isOwner = await verifyTaskOwnership(taskId, user.id)
@@ -291,13 +299,30 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error in AI draft endpoint:', error)
+    // Detailed logging for Vercel logs
+    console.error('=== AI Draft Endpoint Error ===')
+    console.error('Timestamp:', new Date().toISOString())
+    console.error('Error type:', error?.constructor?.name)
+    console.error('Error message:', error instanceof Error ? error.message : String(error))
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:', error.stack)
+    }
+    // Log additional details for API errors
+    if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, unknown>
+      if ('status' in errorObj) console.error('Status code:', errorObj.status)
+      if ('code' in errorObj) console.error('Error code:', errorObj.code)
+      if ('type' in errorObj) console.error('Error type:', errorObj.type)
+      if ('param' in errorObj) console.error('Parameter:', errorObj.param)
+    }
+    console.error('=== End Error Details ===')
 
     if (error instanceof z.ZodError) {
+      const details = error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation error',
+          error: `Validation error: ${details}`,
           details: error.issues,
         },
         { status: 400 }
@@ -308,7 +333,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'AI service not configured. Please check your API keys.',
+          error: `AI configuration error: ${error.message}`,
         },
         { status: 503 }
       )
@@ -318,7 +343,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'AI service rate limit exceeded. Please try again later.',
+          error: `Rate limit exceeded: ${error.message}. Please try again later.`,
         },
         { status: 429 }
       )
@@ -326,13 +351,22 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof AIServiceError) {
       return NextResponse.json(
-        { success: false, error: `AI service error: ${error.message}` },
+        {
+          success: false,
+          error: `AI service error: ${error.message}`,
+          statusCode: error.statusCode,
+        },
         { status: error.statusCode ?? 500 }
       )
     }
 
+    // For unknown errors, include the message in the response
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      {
+        success: false,
+        error: `Internal server error: ${errorMessage}`,
+      },
       { status: 500 }
     )
   }

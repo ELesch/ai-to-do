@@ -27,15 +27,25 @@ export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS]
  * Available OpenAI/ChatGPT models
  * Valid model IDs as of January 2025 - see https://platform.openai.com/docs/models/
  *
- * NOTE: GPT-5 generation models only support temperature=1.0
- * Using other temperature values will cause API errors.
+ * =====================================================================
+ * IMPORTANT: DO NOT CHANGE THESE MODEL IDs - THEY ARE VALID AND CORRECT
+ * =====================================================================
+ *
+ * GPT-5 generation models have specific requirements:
+ * 1. Temperature MUST be set to 1.0 (only supported value)
+ * 2. Use max_completion_tokens instead of max_tokens in API calls
+ * 3. max_completion_tokens accounts for input + thinking + output tokens,
+ *    so values should be set higher than traditional max_tokens values
  */
 export const OPENAI_MODELS = {
-  /** GPT-5.2 - Latest flagship model for complex reasoning tasks (valid model ID: gpt-5.2) */
+  /** GPT-5.2 - Latest flagship model for complex reasoning tasks
+   *  VALID MODEL ID: gpt-5.2 - DO NOT CHANGE */
   GPT5_2: 'gpt-5.2',
-  /** GPT-5.1 - Previous generation flagship model (valid model ID: gpt-5.1) */
+  /** GPT-5.1 - Previous generation flagship model
+   *  VALID MODEL ID: gpt-5.1 - DO NOT CHANGE */
   GPT5_1: 'gpt-5.1',
-  /** GPT-5 Mini - Fast and cost-effective for simpler tasks (valid model ID: gpt-5-mini) */
+  /** GPT-5 Mini - Fast and cost-effective for simpler tasks
+   *  VALID MODEL ID: gpt-5-mini - DO NOT CHANGE */
   GPT5_MINI: 'gpt-5-mini',
 } as const
 
@@ -53,18 +63,22 @@ export const DEFAULT_PROVIDER: AIProviderName = 'openai'
 
 /**
  * Token limits configuration
+ *
+ * NOTE: For GPT-5 models, these values are used with max_completion_tokens
+ * which accounts for input + thinking + output tokens. Values must be set
+ * higher (minimum 16k) to accommodate this expanded scope.
  */
 export const TOKEN_LIMITS = {
-  /** Default maximum output tokens */
-  DEFAULT_MAX_TOKENS: 1024,
+  /** Default maximum completion tokens */
+  DEFAULT_MAX_TOKENS: 16384,
   /** Maximum tokens for short responses (e.g., task decomposition) */
-  SHORT_RESPONSE: 512,
+  SHORT_RESPONSE: 16384,
   /** Maximum tokens for medium responses (e.g., research) */
-  MEDIUM_RESPONSE: 2048,
+  MEDIUM_RESPONSE: 24576,
   /** Maximum tokens for long responses (e.g., document drafting) */
-  LONG_RESPONSE: 4096,
+  LONG_RESPONSE: 32768,
   /** Absolute maximum (model limit) */
-  MAX_OUTPUT_TOKENS: 8192,
+  MAX_OUTPUT_TOKENS: 65536,
 } as const
 
 /**
