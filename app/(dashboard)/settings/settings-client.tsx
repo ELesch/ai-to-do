@@ -248,13 +248,16 @@ function ProfileSection({ user }: ProfileSectionProps) {
 
 function AppearanceSection() {
   const { preferences, updatePreference } = useSettings()
-  const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
 
   const handleThemeChange = (value: string) => {
+    console.log('[Theme Debug] handleThemeChange called with:', value)
+    console.log('[Theme Debug] Current theme from useTheme:', theme)
     // Update the preference in the database
     updatePreference('theme', value as UserPreferences['theme'])
     // Apply the theme change immediately via next-themes
     setTheme(value)
+    console.log('[Theme Debug] setTheme called with:', value)
   }
 
   return (
