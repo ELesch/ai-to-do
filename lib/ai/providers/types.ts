@@ -10,14 +10,20 @@ export type AIProviderName = 'anthropic' | 'openai'
 
 /**
  * Model capabilities
+ * 'reasoning' - GPT-5 models with enhanced reasoning capabilities
  */
-export type ModelCapability = 'chat' | 'streaming' | 'tool_use' | 'vision'
+export type ModelCapability =
+  | 'chat'
+  | 'streaming'
+  | 'tool_use'
+  | 'vision'
+  | 'reasoning'
 
 /**
  * Provider model definition with pricing
  */
 export interface ProviderModel {
-  /** Model identifier (e.g., 'gpt-5-mini', 'claude-sonnet-4-20250514') */
+  /** Model identifier (e.g., 'gpt-5.2', 'gpt-5-mini', 'claude-sonnet-4-20250514') */
   id: string
   /** Human-readable model name */
   name: string

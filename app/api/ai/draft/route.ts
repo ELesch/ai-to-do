@@ -12,6 +12,11 @@ import { db } from '@/lib/db'
 import { aiContext, tasks } from '@/lib/db/schema'
 import { aiService } from '@/services/ai.service'
 import { eq, and, desc } from 'drizzle-orm'
+import {
+  AIConfigError,
+  AIServiceError,
+  AIRateLimitError,
+} from '@/lib/ai/providers/anthropic'
 
 // =============================================================================
 // REQUEST SCHEMAS
@@ -41,7 +46,10 @@ export type DraftRequest = z.infer<typeof draftRequestSchema>
 /**
  * Verify that a task belongs to the user
  */
-async function verifyTaskOwnership(taskId: string, userId: string): Promise<boolean> {
+async function verifyTaskOwnership(
+  taskId: string,
+  userId: string
+): Promise<boolean> {
   const task = await db.query.tasks.findFirst({
     where: and(eq(tasks.id, taskId), eq(tasks.userId, userId)),
     columns: { id: true },
@@ -293,6 +301,33 @@ export async function POST(request: NextRequest) {
           details: error.issues,
         },
         { status: 400 }
+      )
+    }
+
+    if (error instanceof AIConfigError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'AI service not configured. Please check your API keys.',
+        },
+        { status: 503 }
+      )
+    }
+
+    if (error instanceof AIRateLimitError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'AI service rate limit exceeded. Please try again later.',
+        },
+        { status: 429 }
+      )
+    }
+
+    if (error instanceof AIServiceError) {
+      return NextResponse.json(
+        { success: false, error: `AI service error: ${error.message}` },
+        { status: error.statusCode ?? 500 }
       )
     }
 

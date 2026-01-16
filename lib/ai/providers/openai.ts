@@ -20,34 +20,40 @@ import type {
 import { AIConfigError, AIServiceError, AIRateLimitError } from './anthropic'
 
 /**
- * OpenAI ChatGPT models with pricing
+ * OpenAI GPT-5 generation models with pricing
+ * Valid model IDs as of January 2025 - see https://platform.openai.com/docs/models/
+ *
+ * NOTE: GPT-5 models only support temperature=1.0
  */
 const OPENAI_MODELS: ProviderModel[] = [
   {
+    // Valid model ID: gpt-5.2 - Latest flagship model (January 2025)
+    id: 'gpt-5.2',
+    name: 'GPT-5.2',
+    contextWindow: 400000,
+    maxOutputTokens: 128000,
+    inputPricePerMillion: 1.75,
+    outputPricePerMillion: 14.0,
+    capabilities: ['chat', 'streaming', 'tool_use', 'vision', 'reasoning'],
+  },
+  {
+    // Valid model ID: gpt-5.1 - Previous generation flagship (January 2025)
+    id: 'gpt-5.1',
+    name: 'GPT-5.1',
+    contextWindow: 200000,
+    maxOutputTokens: 100000,
+    inputPricePerMillion: 1.5,
+    outputPricePerMillion: 12.0,
+    capabilities: ['chat', 'streaming', 'tool_use', 'vision', 'reasoning'],
+  },
+  {
+    // Valid model ID: gpt-5-mini - Fast and cost-effective (January 2025)
     id: 'gpt-5-mini',
     name: 'GPT-5 Mini',
     contextWindow: 128000,
     maxOutputTokens: 16384,
-    inputPricePerMillion: 0.15,
-    outputPricePerMillion: 0.6,
-    capabilities: ['chat', 'streaming', 'tool_use', 'vision'],
-  },
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    contextWindow: 128000,
-    maxOutputTokens: 16384,
-    inputPricePerMillion: 2.5,
-    outputPricePerMillion: 10.0,
-    capabilities: ['chat', 'streaming', 'tool_use', 'vision'],
-  },
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    contextWindow: 128000,
-    maxOutputTokens: 16384,
-    inputPricePerMillion: 0.15,
-    outputPricePerMillion: 0.6,
+    inputPricePerMillion: 0.25,
+    outputPricePerMillion: 1.0,
     capabilities: ['chat', 'streaming', 'tool_use', 'vision'],
   },
 ]

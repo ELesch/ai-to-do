@@ -25,14 +25,18 @@ export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS]
 
 /**
  * Available OpenAI/ChatGPT models
+ * Valid model IDs as of January 2025 - see https://platform.openai.com/docs/models/
+ *
+ * NOTE: GPT-5 generation models only support temperature=1.0
+ * Using other temperature values will cause API errors.
  */
 export const OPENAI_MODELS = {
-  /** GPT-5 Mini - Fast and cost-effective */
+  /** GPT-5.2 - Latest flagship model for complex reasoning tasks (valid model ID: gpt-5.2) */
+  GPT5_2: 'gpt-5.2',
+  /** GPT-5.1 - Previous generation flagship model (valid model ID: gpt-5.1) */
+  GPT5_1: 'gpt-5.1',
+  /** GPT-5 Mini - Fast and cost-effective for simpler tasks (valid model ID: gpt-5-mini) */
   GPT5_MINI: 'gpt-5-mini',
-  /** GPT-4o - Standard multimodal model */
-  GPT4O: 'gpt-4o',
-  /** GPT-4o Mini - Smaller, faster variant */
-  GPT4O_MINI: 'gpt-4o-mini',
 } as const
 
 export type OpenAIModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS]
@@ -66,6 +70,9 @@ export const TOKEN_LIMITS = {
 /**
  * Temperature presets for different use cases
  * Lower = more deterministic, Higher = more creative
+ *
+ * NOTE: GPT-5 generation models ONLY support temperature=1.0
+ * For GPT-5 models, always use GPT5_REQUIRED regardless of use case.
  */
 export const TEMPERATURE_PRESETS = {
   /** Deterministic responses - factual queries, structured output */
@@ -78,6 +85,8 @@ export const TEMPERATURE_PRESETS = {
   CREATIVE: 0.7,
   /** Maximum creativity - content drafting, ideation */
   EXPLORATORY: 1.0,
+  /** Required temperature for GPT-5 generation models (only value supported) */
+  GPT5_REQUIRED: 1.0,
 } as const
 
 export type TemperaturePreset = keyof typeof TEMPERATURE_PRESETS
@@ -89,37 +98,40 @@ export const DEFAULT_TEMPERATURE = TEMPERATURE_PRESETS.BALANCED
 
 /**
  * Configuration for specific AI operations
+ * @deprecated Use FEATURE_PROVIDER_CONFIG instead for provider-aware configuration
+ *
+ * NOTE: GPT-5 models require temperature=1.0 (GPT5_REQUIRED)
  */
 export const AI_OPERATION_CONFIG = {
-  /** Task decomposition settings */
+  /** Task decomposition - use GPT-5 Mini (valid model ID: gpt-5-mini) */
   decompose: {
-    model: CLAUDE_MODELS.SONNET,
+    model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.FOCUSED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Research assistance settings */
+  /** Research assistance - use GPT-5.2 (valid model ID: gpt-5.2) */
   research: {
-    model: CLAUDE_MODELS.SONNET,
+    model: OPENAI_MODELS.GPT5_2,
     maxTokens: TOKEN_LIMITS.MEDIUM_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.BALANCED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Content drafting settings */
+  /** Content drafting - use GPT-5.2 (valid model ID: gpt-5.2) */
   draft: {
-    model: CLAUDE_MODELS.SONNET,
+    model: OPENAI_MODELS.GPT5_2,
     maxTokens: TOKEN_LIMITS.LONG_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.CREATIVE,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Chat/conversation settings */
+  /** Chat/conversation - use GPT-5 Mini (valid model ID: gpt-5-mini) */
   chat: {
-    model: CLAUDE_MODELS.SONNET,
+    model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.DEFAULT_MAX_TOKENS,
-    temperature: TEMPERATURE_PRESETS.BALANCED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Daily briefing settings */
+  /** Daily briefing - use GPT-5 Mini (valid model ID: gpt-5-mini) */
   briefing: {
-    model: CLAUDE_MODELS.HAIKU,
+    model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.FOCUSED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
 } as const
 
@@ -174,53 +186,55 @@ export interface FeatureProviderConfig {
 
 /**
  * Maps AI operations to their preferred provider and model
- * GPT-5 Mini for fast/cheap operations, Claude for complex reasoning
+ * GPT-5 Mini for fast/cheap operations, GPT-5.2 for complex tasks
+ *
+ * NOTE: All GPT-5 models require temperature=1.0 (GPT5_REQUIRED)
  */
 export const FEATURE_PROVIDER_CONFIG: Record<
   AIOperation | 'suggestions',
   FeatureProviderConfig
 > = {
-  /** Task decomposition - fast operation, use GPT-5 Mini */
+  /** Task decomposition - fast operation, use GPT-5 Mini (valid model ID: gpt-5-mini) */
   decompose: {
     provider: 'openai',
     model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.FOCUSED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Research - complex reasoning, use Claude */
+  /** Research - complex reasoning, use GPT-5.2 (valid model ID: gpt-5.2) */
   research: {
-    provider: 'anthropic',
-    model: CLAUDE_MODELS.SONNET,
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_2,
     maxTokens: TOKEN_LIMITS.MEDIUM_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.BALANCED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Content drafting - creative writing, use Claude */
+  /** Content drafting - creative writing, use GPT-5.2 (valid model ID: gpt-5.2) */
   draft: {
-    provider: 'anthropic',
-    model: CLAUDE_MODELS.SONNET,
+    provider: 'openai',
+    model: OPENAI_MODELS.GPT5_2,
     maxTokens: TOKEN_LIMITS.LONG_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.CREATIVE,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Chat/conversation - fast responses, use GPT-5 Mini */
+  /** Chat/conversation - fast responses, use GPT-5 Mini (valid model ID: gpt-5-mini) */
   chat: {
     provider: 'openai',
     model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.DEFAULT_MAX_TOKENS,
-    temperature: TEMPERATURE_PRESETS.BALANCED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Daily briefing - fast, cheap, use GPT-5 Mini */
+  /** Daily briefing - fast, cheap, use GPT-5 Mini (valid model ID: gpt-5-mini) */
   briefing: {
     provider: 'openai',
     model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.FOCUSED,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
-  /** Quick suggestions - fast, cheap, use GPT-5 Mini */
+  /** Quick suggestions - fast, cheap, use GPT-5 Mini (valid model ID: gpt-5-mini) */
   suggestions: {
     provider: 'openai',
     model: OPENAI_MODELS.GPT5_MINI,
     maxTokens: TOKEN_LIMITS.SHORT_RESPONSE,
-    temperature: TEMPERATURE_PRESETS.CREATIVE,
+    temperature: TEMPERATURE_PRESETS.GPT5_REQUIRED,
   },
 }
 
